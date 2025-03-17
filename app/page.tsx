@@ -37,9 +37,9 @@ export default function Home() {
           {/* <JournalSearch initialQuery={searchParams.query} searchType={searchParams.type} showFilters={showFilters} /> */}
         </div>
 
-        <SubmitJournalDialog open={showSubmitDialog} onOpenChange={setShowSubmitDialog} />
+        <SubmitJournalDialog open={showSubmitDialog} onOpenChange={() => setShowSubmitDialog(!showSubmitDialog)} />
 
-        <AIResearchAssistant open={showAIAssistant} onOpenChange={setShowAIAssistant} />
+<AIResearchAssistant open={showAIAssistant} onOpenChange={() => setShowAIAssistant(!showAIAssistant)} />
 
         {/* Floating AI Assistant Button */}
         <button

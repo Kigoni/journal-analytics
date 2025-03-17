@@ -419,6 +419,7 @@ export default function JournalStats({
                         dataKey="value"
                         nameKey="name"
                         ratio={4 / 3}
+                        // @ts-ignore
                         content={({
                           root,
                           depth,

@@ -361,6 +361,7 @@ export default function StatsDialog({
                           nameKey="name"
                           ratio={4 / 3}
                           stroke="#fff"
+                          //@ts-ignore
                           content={({
                             root,
                             depth,
