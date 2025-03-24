@@ -1,73 +1,120 @@
-"use client"
-
-import { useState } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Sparkles, Search, BookOpen, FileText, Download, Send, Loader2 } from "lucide-react"
+import { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Sparkles, Search, BookOpen, FileText, Download, Send, Loader2 } from "lucide-react";
+import { Configuration, OpenAIApi } from 'openai';
 
 interface AIResearchAssistantProps {
   open: boolean;
   onOpenChange: () => void;
 }
 
+interface ResearchRecommendation {
+  title: string;
+  journals: string[];
+  relevance: number;
+}
 
-export default function AIResearchAssistant({ open, onOpenChange}: AIResearchAssistantProps) {
-  const [query, setQuery] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState("assistant")
+interface JournalRecommendation {
+  title: string;
+  match: string;
+  reason: string;
+}
 
-  // Mock research recommendations
-  const recommendations = [
-    {
-      title: "Recent advances in climate-resilient agriculture in East Africa",
-      journals: ["Journal of Agricultural Research in Africa", "East African Agricultural Review"],
-      relevance: 98,
-    },
-    {
-      title: "Comparative analysis of healthcare systems across Sub-Saharan Africa",
-      journals: ["African Journal of Medical Sciences", "Health Policy and Planning"],
-      relevance: 92,
-    },
-    {
-      title: "Educational technology adoption in rural African schools",
-      journals: ["West African Journal of Education", "International Journal of Educational Technology"],
-      relevance: 87,
-    },
-  ]
+const configuration = new Configuration({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+const openai = new OpenAIApi(configuration);
 
-  // Mock journal recommendations
-  const journalRecommendations = [
-    {
-      title: "African Journal of Environmental Science",
-      match: "95% match to your research interests",
-      reason: "Based on your reading history and publication record",
-    },
-    {
-      title: "Journal of African Economics",
-      match: "92% match to your research interests",
-      reason: "Based on your citation patterns and saved articles",
-    },
-    {
-      title: "African Studies Review",
-      match: "88% match to your research interests",
-      reason: "Based on your profile keywords and recent searches",
-    },
-  ]
+export default function AIResearchAssistant({ open, onOpenChange }: AIResearchAssistantProps) {
+  const [query, setQuery] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("assistant");
+  const [recommendations, setRecommendations] = useState<ResearchRecommendation[]>([]);
+  const [journalRecommendations, setJournalRecommendations] = useState<JournalRecommendation[]>([]);
+
+  useEffect(() => {
+    const fetchRecommendations = async () => {
+      setIsLoading(true);
+      try {
+        // Fetch research recommendations from the API
+        const response = await fetch('https://backend.afrikajournals.org/journal_api/api/article/');
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+        const data = await response.json();
+
+        // Use OpenAI to generate research recommendations
+        const prompt = `Based on the following articles, recommend some research topics:\n${JSON.stringify(data)}`;
+        const completion = await openai.createChatCompletion({
+          model: "gpt-3.5-turbo",
+          messages: [{ role: "user", content: prompt }],
+        });
+
+        const aiRecommendations = JSON.parse((completion.data.choices[0] as any).message.content);
+        setRecommendations(aiRecommendations);
+      } catch (error) {
+        console.error("Failed to fetch research recommendations:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    const fetchJournalRecommendations = async () => {
+      setIsLoading(true);
+      try {
+        // Fetch journal recommendations from the API
+        const response = await fetch('https://backend.afrikajournals.org/journal_api/journals/');
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+        const data = await response.json();
+
+        // Use OpenAI to generate journal recommendations
+        const prompt = `Based on the following journals, recommend some journals that match the user's interests:\n${JSON.stringify(data)}`;
+        const completion = await openai.createChatCompletion({
+          model: "gpt-3.5-turbo",
+          messages: [{ role: "user", content: prompt }],
+        });
+
+        const aiJournalRecommendations = JSON.parse((completion.data.choices[0] as any).message.content);
+        setJournalRecommendations(aiJournalRecommendations);
+      } catch (error) {
+        console.error("Failed to fetch journal recommendations:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchRecommendations();
+    fetchJournalRecommendations();
+  }, []);
 
   const handleSubmit = async (e: React.SyntheticEvent) => {
+    e.preventDefault();
+    if (!query.trim()) return;
 
-    e.preventDefault()
-    if (!query.trim()) return
+    setIsLoading(true);
+    try {
+      // Use OpenAI to generate a response based on the query
+      const prompt = `Based on the following query, provide a detailed response:\n${query}`;
+      const completion = await openai.createChatCompletion({
+        model: "gpt-3.5-turbo",
+        messages: [{ role: "user", content: prompt }],
+      });
 
-    setIsLoading(true)
-    // Simulate API call to AI research assistant
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-    setIsLoading(false)
-    // In a real implementation, you would process the response here
-  }
+      const response = (completion.data.choices[0] as any).message.content;
+      // In a real implementation, you would process the response here
+      console.log(response);
+    } catch (error) {
+      console.error("Failed to process query:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -183,12 +230,11 @@ export default function AIResearchAssistant({ open, onOpenChange}: AIResearchAss
         </Tabs>
 
         <DialogFooter>
-        <Button variant="outline" onClick={onOpenChange}>
+          <Button variant="outline" onClick={onOpenChange}>
             Close
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
-

@@ -1,3 +1,10 @@
+import { Configuration, OpenAIApi } from 'openai';
+
+const configuration = new Configuration({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+const openai = new OpenAIApi(configuration);
+
 interface Filter {
   category: string;
   value: string;
@@ -27,205 +34,406 @@ interface TrendData {
   };
 }
 
-// AI API functions to simulate fetching data from AI-powered backend
+// Fetch journals based on search query and filters
+export async function fetchJournals(query = "", filters: Filter[] = []) {
+  try {
+    // Fetch all journals from the API
+    const response = await fetch('https://backend.afrikajournals.org/journal_api/journals/');
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+    const journals = await response.json();
+
+    // Filter journals based on search query and filters
+    let filteredJournals = journals.filter((journal: any) => {
+      const matchesQuery = !query ||
+        journal.title.toLowerCase().includes(query.toLowerCase()) ||
+        journal.description.toLowerCase().includes(query.toLowerCase()) ||
+        journal.thematicArea.toLowerCase().includes(query.toLowerCase());
+
+      const matchesFilters = filters.every((filter) => {
+        switch (filter.category) {
+          case "country":
+            return journal.country === filter.value;
+          case "thematicArea":
+            return journal.thematicArea === filter.value;
+          case "indexing":
+            return journal.indexing.includes(filter.value);
+          case "language":
+            return journal.language === filter.value;
+          case "accessType":
+            return journal.accessType === filter.value;
+          default:
+            return true;
+        }
+      });
+
+      return matchesQuery && matchesFilters;
+    });
+
+    return filteredJournals;
+  } catch (error) {
+    console.error("Failed to fetch journals:", error);
+    return [];
+  }
+}
+
+// Fetch AI-recommended journals
+export async function fetchRecommendedJournals() {
+  try {
+    // Fetch all journals from the API
+    const response = await fetch('https://backend.afrikajournals.org/journal_api/journals/');
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+    const journals = await response.json();
+
+    // Use OpenAI to generate recommendations
+    const prompt = `Based on the following journals, recommend a few that are related:\n${JSON.stringify(journals)}`;
+    const completion = await openai.createChatCompletion({
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    const recommendedJournals = JSON.parse((completion.data?.choices?.[0]?.message?.content) ?? '[]');
+    return recommendedJournals;
+  } catch (error) {
+    console.error("Failed to fetch recommended journals:", error);
+    return [];
+  }
+}
+
+// Fetch AI-recommended filters
+export async function fetchRecommendedFilters() {
+  try {
+    // Fetch all journals from the API
+    const response = await fetch('https://backend.afrikajournals.org/journal_api/journals/');
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+    const journals = await response.json();
+
+    // Use OpenAI to generate filter recommendations
+    const prompt = `Based on the following journals, recommend some filters for searching:\n${JSON.stringify(journals)}`;
+    const completion = await openai.createChatCompletion({
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    const recommendedFilters = JSON.parse((completion.data?.choices?.[0]?.message?.content) ?? '[]');
+    return recommendedFilters;
+  } catch (error) {
+    console.error("Failed to fetch recommended filters:", error);
+    return [];
+  }
+}
 
 // Fetch AI-suggested filters based on search query
 export async function fetchAISuggestedFilters(query: string): Promise<Filter[]> {
-  // Simulate API call
-  await new Promise((resolve) => setTimeout(resolve, 1200));
+  try {
+    // Use OpenAI to generate filter suggestions based on the query
+    const prompt = `Suggest filters for searching journals related to: "${query}"`;
+    const completion = await openai.createChatCompletion({
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: prompt }],
+    });
 
-  // Mock data - AI suggested filters based on query
-  const defaultFilters: Filter[] = [
-    { category: "thematicArea", value: "Climate Science", label: "Field" },
-    { category: "country", value: "Kenya", label: "Country" },
-    { category: "indexing", value: "Scopus", label: "Indexed in" },
-    { category: "language", value: "English", label: "Language" },
-    { category: "accessType", value: "Open Access", label: "Access" },
-  ];
-
-  // For agriculture-related queries
-  if (query.toLowerCase().includes("agriculture") || query.toLowerCase().includes("farming")) {
-    return [
-      { category: "thematicArea", value: "Agriculture", label: "Field" },
-      { category: "thematicArea", value: "Food Security", label: "Field" },
-      { category: "country", value: "Nigeria", label: "Country" },
-      { category: "indexing", value: "AJOL", label: "Indexed in" },
-    ];
+    const suggestedFilters = JSON.parse((completion.data?.choices?.[0]?.message?.content) ?? '[]');
+    return suggestedFilters;
+  } catch (error) {
+    console.error("Failed to fetch AI-suggested filters:", error);
+    return [];
   }
-
-  // For medical-related queries
-  if (query.toLowerCase().includes("medical") || query.toLowerCase().includes("health")) {
-    return [
-      { category: "thematicArea", value: "Medicine", label: "Field" },
-      { category: "thematicArea", value: "Public Health", label: "Field" },
-      { category: "country", value: "South Africa", label: "Country" },
-      { category: "indexing", value: "PubMed", label: "Indexed in" },
-    ];
-  }
-
-  // For technology-related queries
-  if (query.toLowerCase().includes("technology") || query.toLowerCase().includes("digital")) {
-    return [
-      { category: "thematicArea", value: "Information Technology", label: "Field" },
-      { category: "thematicArea", value: "Computer Science", label: "Field" },
-      { category: "country", value: "Kenya", label: "Country" },
-      { category: "indexing", value: "IEEE", label: "Indexed in" },
-    ];
-  }
-
-  return defaultFilters;
 }
 
 // Fetch AI-generated summary for a journal
 export async function fetchAISummary(journalId: string): Promise<Summary> {
-  // Simulate API call
-  await new Promise((resolve) => setTimeout(resolve, 1500));
+  try {
+    // Fetch journal details from the API
+    const response = await fetch(`https://backend.afrikajournals.org/journal_api/journals/${journalId}`);
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+    const journal = await response.json();
 
-  // Mock data - AI generated summaries
-  const summaries: { [key: string]: Summary } = {
-    "1": {
-      summary:
-        "This peer-reviewed journal focuses on medical sciences in Africa, with particular emphasis on tropical diseases, public health interventions, and healthcare systems strengthening. It publishes original research, reviews, and case studies that address the unique health challenges facing African populations. The journal has a strong reputation for rigorous peer review and has been instrumental in shaping health policies across the continent.",
-    },
-    "2": {
-      summary:
-        "Dedicated to agricultural research in Africa, this journal publishes cutting-edge studies on sustainable farming practices, crop improvement, livestock management, and food security. It emphasizes research that addresses the challenges of climate change, resource constraints, and market access for smallholder farmers. The journal serves as a vital platform for knowledge exchange between researchers, policymakers, and agricultural practitioners across Africa.",
-    },
-    "3": {
-      summary:
-        "This journal examines social, economic, and political issues affecting African societies through a multidisciplinary lens. It publishes research on governance, development, education, gender, and cultural dynamics. The journal is particularly noted for its critical analysis of policy frameworks and their impacts on marginalized communities. It has become an essential resource for scholars, policymakers, and development practitioners working on social transformation in Africa.",
-    },
-    "4": {
-      summary:
-        "As one of the oldest medical journals in Africa, this publication has a distinguished history of advancing healthcare knowledge in East Africa. It focuses on regional health challenges, disease patterns, and healthcare delivery systems. The journal has been instrumental in documenting the evolution of medical practice in the region and supporting evidence-based healthcare policy development. It maintains high standards of peer review and ethical research practices.",
-    },
-    "5": {
-      summary:
-        "This journal addresses environmental challenges and sustainable development in Africa through interdisciplinary research. It covers topics including conservation, climate change adaptation, natural resource management, and environmental policy. The journal emphasizes research that balances ecological preservation with socioeconomic development needs. It serves as a platform for sharing innovative approaches to environmental stewardship across diverse African ecosystems.",
-    },
-  };
+    // Use OpenAI to generate a summary
+    const prompt = `Generate a summary for the following journal:\n${JSON.stringify(journal)}`;
+    const completion = await openai.createChatCompletion({
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: prompt }],
+    });
 
-  // Default summary for journals not in our mock data
-  const defaultSummary: Summary = {
-    summary:
-      "This peer-reviewed African journal publishes original research, reviews, and scholarly articles that contribute to its field. It maintains rigorous academic standards and serves as an important platform for African researchers and international collaborators. The journal is committed to advancing knowledge and addressing challenges relevant to African contexts.",
-  };
-
-  return summaries[journalId] || defaultSummary;
+    const summary = completion.data?.choices?.[0]?.message?.content ?? 'No summary available.';
+    return { summary };
+  } catch (error) {
+    console.error("Failed to fetch AI summary:", error);
+    return { summary: "No summary available." };
+  }
 }
 
 // Fetch AI-recommended citations
 export async function fetchRecommendedCitations(journalId: string): Promise<Recommendation[]> {
-  // Simulate API call
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+  try {
+    // Fetch journal details from the API
+    const response = await fetch(`https://backend.afrikajournals.org/journal_api/journals/${journalId}`);
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+    const journal = await response.json();
 
-  // Mock data - recommended citations
-  const recommendations: Recommendation[] = [
-    {
-      id: "rec-1",
-      title: "Emerging Trends in African Academic Publishing: A Systematic Review",
-      authors: ["Amina Osei", "Robert Mwangi"],
-      journal: "Journal of Scholarly Communication",
-      year: 2023,
-    },
-    {
-      id: "rec-2",
-      title: "Digital Transformation of Academic Journals in Sub-Saharan Africa",
-      authors: ["James Wilson", "Grace Mensah"],
-      journal: "Digital Library Perspectives",
-      year: 2022,
-    },
-    {
-      id: "rec-3",
-      title: "Citation Patterns and Impact Factors of African Journals: A Comparative Analysis",
-      authors: ["Elizabeth Muthoni", "Daniel Kipchoge"],
-      journal: "Scientometrics",
-      year: 2021,
-    },
-  ];
+    // Use OpenAI to recommend citations
+    const prompt = `Recommend citations for the following journal:\n${JSON.stringify(journal)}`;
+    const completion = await openai.createChatCompletion({
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: prompt }],
+    });
 
-  return recommendations;
+    const recommendations = JSON.parse((completion.data?.choices?.[0]?.message?.content) ?? '[]');
+    return recommendations;
+  } catch (error) {
+    console.error("Failed to fetch recommended citations:", error);
+    return [];
+  }
 }
 
 // Fetch AI trend analysis data
 export async function fetchAITrends(query?: string, thematicArea?: string): Promise<TrendData> {
-  // Simulate API call
-  await new Promise((resolve) => setTimeout(resolve, 1800));
+  try {
+    // Use OpenAI to generate trend analysis data
+    const prompt = `Generate trend analysis data for the query: "${query}" and thematic area: "${thematicArea}"`;
+    const completion = await openai.createChatCompletion({
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: prompt }],
+    });
 
-  // Mock data - AI trend analysis
-  const trendData: TrendData = {
-    publicationTrends: [
-      { year: 2018, count: 120 },
-      { year: 2019, count: 145 },
-      { year: 2020, count: 180 },
-      { year: 2021, count: 210 },
-      { year: 2022, count: 260 },
-      { year: 2023, count: 320 },
-    ],
-    citationTrends: [
-      { year: 2018, count: 350 },
-      { year: 2019, count: 420 },
-      { year: 2020, count: 580 },
-      { year: 2021, count: 780 },
-      { year: 2022, count: 950 },
-      { year: 2023, count: 1250 },
-    ],
-    hotTopics: [
-      { name: "Climate Resilience", growth: 78 },
-      { name: "Digital Health", growth: 65 },
-      { name: "Food Security", growth: 52 },
-      { name: "Renewable Energy", growth: 48 },
-      { name: "AI in Education", growth: 45 },
-      { name: "Urban Planning", growth: 38 },
-    ],
-    insights: {
-      publications: "Publications have increased by 38% in the past year",
-      citations: "Citation impact has grown by 31% since 2022",
-      topics: "Climate Resilience is the fastest growing research area",
-    },
-  };
-
-  // Customize based on thematic area if provided
-  if (thematicArea === "Medicine" || thematicArea === "Health Sciences") {
-    trendData.hotTopics = [
-      { name: "COVID-19 Long-term Effects", growth: 85 },
-      { name: "Telemedicine", growth: 72 },
-      { name: "Tropical Diseases", growth: 58 },
-      { name: "Mental Health", growth: 52 },
-      { name: "Healthcare Access", growth: 47 },
-      { name: "Maternal Health", growth: 41 },
-    ];
-    trendData.insights.topics = "COVID-19 research continues to dominate medical publications";
-  } else if (thematicArea === "Agriculture") {
-    trendData.hotTopics = [
-      { name: "Drought-resistant Crops", growth: 82 },
-      { name: "Sustainable Farming", growth: 75 },
-      { name: "Food Security", growth: 67 },
-      { name: "Agricultural Technology", growth: 59 },
-      { name: "Soil Health", growth: 48 },
-      { name: "Livestock Management", growth: 42 },
-    ];
-    trendData.insights.topics = "Drought-resistant crop research has seen significant growth";
+    const trendData = JSON.parse((completion.data?.choices?.[0]?.message?.content) ?? '[]');
+    return trendData;
+  } catch (error) {
+    console.error("Failed to fetch AI trend analysis data:", error);
+    return {
+      publicationTrends: [],
+      citationTrends: [],
+      hotTopics: [],
+      insights: { publications: "", citations: "", topics: "" },
+    };
   }
-
-  return trendData;
 }
 
-// Process voice search query
-export async function processVoiceSearch(): Promise<{ transcript: string }> {
-  // Simulate API call to process audio and return transcript
-  await new Promise((resolve) => setTimeout(resolve, 1500));
+// Fetch journal volumes and articles
+export async function fetchJournalVolumes(journalId: string) {
+  try {
+    // Fetch volumes for the given journal ID
+    const volumesResponse = await fetch(`https://backend.afrikajournals.org/journal_api/api/volume/?journalId=${journalId}`);
+    if (!volumesResponse.ok) {
+      throw new Error(`API error: ${volumesResponse.status}`);
+    }
+    const volumes = await volumesResponse.json();
 
-  // Mock data - simulated transcription result
-  const possibleTranscripts = [
-    "African journals on climate change adaptation",
-    "Recent medical research in Kenya",
-    "Agricultural sustainability in West Africa",
-    "Educational technology journals in Africa",
-    "Public health interventions in Sub-Saharan Africa",
-  ];
+    // Fetch articles for each volume
+    const volumesWithArticles = await Promise.all(
+      volumes.map(async (volume: any) => {
+        const articlesResponse = await fetch(`https://backend.afrikajournals.org/journal_api/api/article/?volumeId=${volume.id}`);
+        if (!articlesResponse.ok) {
+          throw new Error(`API error: ${articlesResponse.status}`);
+        }
+        const articles = await articlesResponse.json();
+        return { ...volume, articles };
+      })
+    );
 
-  // Return a random transcript from our options
-  const randomIndex = Math.floor(Math.random() * possibleTranscripts.length);
-  return { transcript: possibleTranscripts[randomIndex] };
+    return volumesWithArticles;
+  } catch (error) {
+    console.error("Failed to fetch journal volumes and articles:", error);
+    return [];
+  }
+}
+
+// Fetch thematic areas
+export async function fetchThematicAreas() {
+  try {
+    const response = await fetch('https://backend.afrikajournals.org/journal_api/api/thematic/');
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Failed to fetch thematic areas:", error);
+    return [];
+  }
+}
+
+// Fetch platforms
+export async function fetchPlatforms() {
+  try {
+    const response = await fetch('https://backend.afrikajournals.org/journal_api/api/platform/');
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Failed to fetch platforms:", error);
+    return [];
+  }
+}
+
+// Fetch languages
+export async function fetchLanguages() {
+  try {
+    const response = await fetch('https://backend.afrikajournals.org/journal_api/api/languages/');
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Failed to fetch languages:", error);
+    return [];
+  }
+}
+
+// Fetch countries
+export async function fetchCountries() {
+  try {
+    const response = await fetch('https://backend.afrikajournals.org/journal_api/api/country/');
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Failed to fetch countries:", error);
+    return [];
+  }
+}
+
+// Fetch journals from the backend API with pagination
+export async function fetchJournalsFromAPI(page = 1, limit = 10) {
+  try {
+    const response = await fetch(`https://backend.afrikajournals.org/journal_api/journals/?page=${page}&limit=${limit}`);
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Failed to fetch journals:", error);
+    return [];
+  }
+}
+
+// Fetch journal details from the backend API
+export async function fetchJournalDetailsFromAPI(journalId: string) {
+  try {
+    const response = await fetch(`https://backend.afrikajournals.org/journal_api/journals/${journalId}`);
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error(`Failed to fetch journal details for ID ${journalId}:`, error);
+    return null;
+  }
+}
+
+// Search journals with filters from the backend API
+export async function searchJournalsFromAPI(query = "", filters: { [key: string]: string } = {}) {
+  try {
+    // Build query parameters
+    const params = new URLSearchParams();
+    if (query) params.append("query", query);
+
+    // Add filters to query params
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") {
+        params.append(key, value.toString());
+      }
+    });
+
+    const response = await fetch(`https://backend.afrikajournals.org/journal_api/journals/search/?${params.toString()}`);
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Failed to search journals:", error);
+    return { journals: [] };
+  }
+}
+
+// Fetch country statistics from the backend API
+export async function fetchCountryStatsFromAPI() {
+  try {
+    const response = await fetch(`https://backend.afrikajournals.org/journal_api/api/journals/country-count/`);
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Failed to fetch country stats:", error);
+    return [];
+  }
+}
+
+// Download statistics in various formats
+export async function downloadStatsFromAPI(format = "csv", filters: { [key: string]: string } = {}) {
+  try {
+    // Build query parameters
+    const params = new URLSearchParams();
+    params.append("format", format);
+
+    // Add filters to query params
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") {
+        params.append(key, value.toString());
+      }
+    });
+
+    const response = await fetch(
+      `https://backend.afrikajournals.org/journal_api/journals/stats/download/?${params.toString()}`,
+    );
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    // Handle different formats
+    if (format === "csv" || format === "json") {
+      return await response.blob();
+    } else if (format === "pdf") {
+      return await response.blob();
+    }
+
+    return null;
+  } catch (error) {
+    console.error(`Failed to download stats in ${format} format:`, error);
+    return null;
+  }
+}
+
+// Fetch paginated journals from the API
+export async function fetchPaginatedJournals(page = 1, limit = 10, query = "", filters: Filter[] = []) {
+  try {
+    // Build query parameters
+    const params = new URLSearchParams();
+    params.append("page", page.toString());
+    params.append("limit", limit.toString());
+
+    if (query) {
+      params.append("query", query);
+    }
+
+    // Add filters to query params
+    if (filters && filters.length > 0) {
+      filters.forEach((filter) => {
+        params.append(filter.category, filter.value);
+      });
+    }
+
+    const response = await fetch(`https://backend.afrikajournals.org/journal_api/journals/?${params.toString()}`);
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Failed to fetch paginated journals:", error);
+    return { page, limit, total: 0, journals: [] };
+  }
 }

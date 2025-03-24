@@ -1,57 +1,107 @@
-"use client"
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Download, ArrowLeft } from "lucide-react";
+import { Chart, ChartContainer, ChartLegend, ChartLegendItem, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { Pie, PieChart as RechartsPieChart, Cell, ResponsiveContainer } from "recharts";
+import Link from "next/link";
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Download, ArrowLeft } from "lucide-react"
-import {
-  Chart,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  ChartLegend,
-  ChartLegendItem,
-} from "@/components/ui/chart"
-import { Pie, PieChart as RechartsPieChart, Cell, ResponsiveContainer } from "recharts"
-import Link from "next/link"
+interface IndexingStat {
+  name: string;
+  value: number;
+}
+
+interface Platform {
+  platform: string;
+}
 
 export default function IndexingAnalyticsPage() {
-  const [indexingStats, setIndexingStats] = useState<{ name: string; value: number }[]>([]);  
-  const [isLoading, setIsLoading] = useState(true)
-  const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8", "#82CA9D"]
+  const [indexingStats, setIndexingStats] = useState<IndexingStat[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8", "#82CA9D"];
 
   useEffect(() => {
     const fetchData = async () => {
-      setIsLoading(true)
+      setIsLoading(true);
       try {
-        // In a real app, this would be an API call
-        await new Promise((resolve) => setTimeout(resolve, 800))
+        // Fetch platforms from the API
+        const response = await fetch('https://backend.afrikajournals.org/journal_api/api/platform/');
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+        const data: Platform[] = await response.json();
 
-        // Mock data
-        const data = [
-          { name: "AJOL", value: 35 },
-          { name: "DOAJ", value: 25 },
-          { name: "Scopus", value: 15 },
-          { name: "Web of Science", value: 10 },
-          { name: "PubMed", value: 8 },
-          { name: "Google Scholar", value: 7 },
-        ]
+        // Tally the count for each platform
+        const tally: { [key: string]: number } = {};
+        data.forEach((item) => {
+          if (tally[item.platform]) {
+            tally[item.platform]++;
+          } else {
+            tally[item.platform] = 1;
+          }
+        });
 
-        setIndexingStats(data)
+        // Convert tally to IndexingStat format
+        const stats = Object.entries(tally).map(([name, value]) => ({ name, value }));
+        setIndexingStats(stats);
       } catch (error) {
-        console.error("Failed to fetch indexing stats:", error)
+        console.error("Failed to fetch indexing stats:", error);
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
+    };
+
+    fetchData();
+  }, []);
+
+  const handleDownload = async (format: string) => {
+    try {
+      // Fetch platforms from the API
+      const response = await fetch('https://backend.afrikajournals.org/journal_api/api/platform/');
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      const data: Platform[] = await response.json();
+
+      // Tally the count for each platform
+      const tally: { [key: string]: number } = {};
+      data.forEach((item) => {
+        if (tally[item.platform]) {
+          tally[item.platform]++;
+        } else {
+          tally[item.platform] = 1;
+        }
+      });
+
+      // Convert tally to IndexingStat format
+      const stats = Object.entries(tally).map(([name, value]) => ({ name, value }));
+
+      let blob: Blob;
+      if (format === "csv") {
+        const csvContent = "data:text/csv;charset=utf-8," +
+          stats.map(e => `${e.name},${e.value}`).join("\n");
+        blob = new Blob([csvContent], { type: "text/csv" });
+      } else if (format === "pdf") {
+        // For PDF, you would typically use a library like jsPDF to create the PDF content
+        // Here, we'll just simulate the download process
+        const pdfContent = "data:application/pdf," + encodeURIComponent("PDF content here");
+        blob = new Blob([pdfContent], { type: "application/pdf" });
+      } else {
+        throw new Error("Unsupported format");
+      }
+
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.style.display = "none";
+      a.href = url;
+      a.download = `indexing_stats.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error(`Failed to download stats in ${format} format:`, error);
     }
-
-    fetchData()
-  }, [])
-
-  const handleDownload = (format: string) => {
-    // In a real implementation, this would call an API endpoint to download the stats
-    alert(`Downloading indexing stats in ${format} format`)
-  }
+  };
 
   return (
     <main className="min-h-screen bg-gradient-to-r from-yellow-300/20 to-green-300/20">
@@ -130,6 +180,5 @@ export default function IndexingAnalyticsPage() {
         </Card>
       </div>
     </main>
-  )
+  );
 }
-

@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import { useState } from "react"
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -8,54 +8,68 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Loader2, Mail, FileText } from "lucide-react"
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Loader2, Mail, FileText } from "lucide-react";
 
 type OnOpenChangeCallback = (isOpen: boolean) => void;
 
-export default function SubmitJournalDialog({ open, onOpenChange }: { open: boolean, onOpenChange: OnOpenChangeCallback }) {  const [isLoading, setIsLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState("email")
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
+export default function SubmitJournalDialog({ open, onOpenChange }: { open: boolean; onOpenChange: OnOpenChangeCallback }) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("email");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.SyntheticEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
+  const API_BASE_URL = "https://backend.afrikajournals.org";
+
+  // Function to handle login
+  const handleLogin = async (e: React.SyntheticEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
 
     try {
-      // In a real implementation, this would call an API endpoint to authenticate
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      const response = await fetch(`${API_BASE_URL}/api/token/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-      // Simulate successful login
-      onOpenChange(false)
-      // You would redirect to a submission form or dashboard here
-    } catch (error) {
-      console.error("Login failed:", error)
+      if (!response.ok) {
+        throw new Error("Invalid credentials. Please try again.");
+      }
+
+      const data = await response.json();
+      console.log("Login successful:", data);
+
+      onOpenChange(false); // Close dialog on success
+    } catch (err: any) {
+      setError(err.message);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
+  // Function to handle Google login (placeholder)
   const handleGoogleLogin = async () => {
-    setIsLoading(true)
+    setIsLoading(true);
+    setError(null);
 
     try {
-      // In a real implementation, this would initiate Google OAuth
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      // Implement Google OAuth login logic here
+      await new Promise((resolve) => setTimeout(resolve, 1500));
 
-      // Simulate successful login
-      onOpenChange(false)
-      // You would redirect to a submission form or dashboard here
-    } catch (error) {
-      console.error("Google login failed:", error)
+      onOpenChange(false);
+    } catch (err) {
+      setError("Google login failed. Please try again.");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -63,7 +77,7 @@ export default function SubmitJournalDialog({ open, onOpenChange }: { open: bool
         <DialogHeader>
           <DialogTitle className="text-center">Submit Journal or Volume</DialogTitle>
           <DialogDescription className="text-center">
-            Log in to submit your journal or volume for review and publication
+            Log in to submit your journal or volume for review and publication.
           </DialogDescription>
         </DialogHeader>
 
@@ -74,7 +88,7 @@ export default function SubmitJournalDialog({ open, onOpenChange }: { open: bool
           </TabsList>
 
           <TabsContent value="email" className="space-y-4 py-4">
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -99,6 +113,8 @@ export default function SubmitJournalDialog({ open, onOpenChange }: { open: bool
                 />
               </div>
 
+              {error && <p className="text-red-500 text-sm">{error}</p>}
+
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? (
                   <>
@@ -118,7 +134,7 @@ export default function SubmitJournalDialog({ open, onOpenChange }: { open: bool
           <TabsContent value="google" className="py-4">
             <div className="flex flex-col items-center justify-center space-y-4">
               <p className="text-sm text-muted-foreground text-center">
-                Click the button below to log in with your Google account
+                Click the button below to log in with your Google account.
               </p>
 
               <Button onClick={handleGoogleLogin} variant="outline" className="w-full" disabled={isLoading}>
@@ -168,6 +184,5 @@ export default function SubmitJournalDialog({ open, onOpenChange }: { open: bool
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
-

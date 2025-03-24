@@ -8,7 +8,7 @@ import { Search, Filter, BookOpen, Sparkles, Loader2 } from "lucide-react"
 import { useDebounce } from "@/hooks/use-debounce";
 import { fetchJournals, fetchRecommendedJournals, fetchRecommendedFilters } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card"
-import VoiceSearch from "@/components/ai-features/voice-search"
+// import VoiceSearch from "@/components/ai-features/voice-search"
 import AISuggestedFilters from "./ai-features/ai-suggested-filters";
 import JournalList from "./journal-list";
 
@@ -75,7 +75,7 @@ export default function AdvancedSearchBar({
     const loadRecommendedFilters = async () => {
       try {
         const data = await fetchRecommendedFilters();
-        setRecommendedFilters(data.map((filter) => ({
+        setRecommendedFilters(data.map((filter: { category: string; value: string }) => ({
           ...filter,
           id: `${filter.category}-${filter.value}`
         })));
@@ -145,9 +145,9 @@ export default function AdvancedSearchBar({
     }
   };
 
-  const handleVoiceSearch = (query: string) => {
-    setSearchQuery(query);
-  };
+  // const handleVoiceSearch = (query: string) => {
+  //   setSearchQuery(query);
+  // };
 
   return (
     <div className="flex flex-col">
@@ -198,9 +198,9 @@ export default function AdvancedSearchBar({
 
             {/* <VoiceSearch onSearch={handleVoiceSearch} /> */}
               {/* AI Suggested Filters */}
-      {debouncedSearchQuery && (
+      {/* {debouncedSearchQuery && (
         <AISuggestedFilters query={debouncedSearchQuery} onApplyFilter={handleApplySuggestedFilter} />
-      )}
+      )} */}
       
 
             <div className="flex">

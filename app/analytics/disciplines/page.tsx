@@ -1,23 +1,22 @@
-"use client";
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, ArrowLeft } from "lucide-react";
 import { Chart, ChartContainer, ChartLegend, ChartLegendItem } from "@/components/ui/chart";
-import { Treemap as RechartsTreemap, ResponsiveContainer } from "recharts";
+import { Treemap as RechartsTreemap, ResponsiveContainer, Cell } from "recharts";
 import Link from "next/link";
 
-interface CellProps {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  depth: number;
+interface DisciplineStat {
+  name: string;
+  value: number;
+}
+
+interface ThematicArea {
+  thematicArea: string;
 }
 
 export default function DisciplinesAnalyticsPage() {
-  const [disciplineStats, setDisciplineStats] = useState<{ name: string; value: number }[]>([]);
+  const [disciplineStats, setDisciplineStats] = useState<DisciplineStat[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const COLORS = [
     "#0088FE",
@@ -34,22 +33,26 @@ export default function DisciplinesAnalyticsPage() {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        // In a real app, this would be an API call
-        await new Promise((resolve) => setTimeout(resolve, 800));
+        // Fetch thematic areas from the API
+        const response = await fetch('https://backend.afrikajournals.org/journal_api/api/thematic/');
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+        const data: ThematicArea[] = await response.json();
 
-        // Mock data
-        const data = [
-          { name: "Medicine", value: 250 },
-          { name: "Agriculture", value: 180 },
-          { name: "Social Sciences", value: 150 },
-          { name: "Education", value: 120 },
-          { name: "Environmental Science", value: 100 },
-          { name: "Engineering", value: 80 },
-          { name: "Business", value: 70 },
-          { name: "Arts & Humanities", value: 60 },
-        ];
+        // Tally the count for each thematic area
+        const tally: { [key: string]: number } = {};
+        data.forEach((item) => {
+          if (tally[item.thematicArea]) {
+            tally[item.thematicArea]++;
+          } else {
+            tally[item.thematicArea] = 1;
+          }
+        });
 
-        setDisciplineStats(data);
+        // Convert tally to DisciplineStat format
+        const stats = Object.entries(tally).map(([name, value]) => ({ name, value }));
+        setDisciplineStats(stats);
       } catch (error) {
         console.error("Failed to fetch discipline stats:", error);
       } finally {
@@ -60,9 +63,53 @@ export default function DisciplinesAnalyticsPage() {
     fetchData();
   }, []);
 
-  const handleDownload = (format: string) => {
-    // In a real implementation, this would call an API endpoint to download the stats
-    alert(`Downloading discipline stats in ${format} format`);
+  const handleDownload = async (format: string) => {
+    try {
+      // Fetch thematic areas from the API
+      const response = await fetch('https://backend.afrikajournals.org/journal_api/api/thematic/');
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      const data: ThematicArea[] = await response.json();
+
+      // Tally the count for each thematic area
+      const tally: { [key: string]: number } = {};
+      data.forEach((item) => {
+        if (tally[item.thematicArea]) {
+          tally[item.thematicArea]++;
+        } else {
+          tally[item.thematicArea] = 1;
+        }
+      });
+
+      // Convert tally to DisciplineStat format
+      const stats = Object.entries(tally).map(([name, value]) => ({ name, value }));
+
+      let blob: Blob;
+      if (format === "csv") {
+        const csvContent = "data:text/csv;charset=utf-8," +
+          stats.map(e => `${e.name},${e.value}`).join("\n");
+        blob = new Blob([csvContent], { type: "text/csv" });
+      } else if (format === "pdf") {
+        // For PDF, you would typically use a library like jsPDF to create the PDF content
+        // Here, we'll just simulate the download process
+        const pdfContent = "data:application/pdf," + encodeURIComponent("PDF content here");
+        blob = new Blob([pdfContent], { type: "application/pdf" });
+      } else {
+        throw new Error("Unsupported format");
+      }
+
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.style.display = "none";
+      a.href = url;
+      a.download = `discipline_stats.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error(`Failed to download stats in ${format} format:`, error);
+    }
   };
 
   return (
@@ -109,6 +156,7 @@ export default function DisciplinesAnalyticsPage() {
                         dataKey="value"
                         nameKey="name"
                         stroke="#fff"
+                        fill="#8884d8"
                       >
                         {disciplineStats.map((entry, index) => (
                           <Cell
@@ -116,33 +164,6 @@ export default function DisciplinesAnalyticsPage() {
                             fill={COLORS[index % COLORS.length]}
                             stroke="#fff"
                             strokeWidth={2}
-                            render={(cellProps: CellProps) => (
-                              <g>
-                                <rect
-                                  x={cellProps.x}
-                                  y={cellProps.y}
-                                  width={cellProps.width}
-                                  height={cellProps.height}
-                                  style={{
-                                    fill: COLORS[index % COLORS.length],
-                                    stroke: "#fff",
-                                    strokeWidth: 2 / (cellProps.depth + 1e-10),
-                                    strokeOpacity: 1 / (cellProps.depth + 1e-10),
-                                  }}
-                                />
-                                {cellProps.width > 50 && cellProps.height > 30 && (
-                                  <text
-                                    x={cellProps.x + cellProps.width / 2}
-                                    y={cellProps.y + cellProps.height / 2 + 7}
-                                    textAnchor="middle"
-                                    fill="#fff"
-                                    fontSize={14}
-                                  >
-                                    {entry.name}
-                                  </text>
-                                )}
-                              </g>
-                            )}
                           />
                         ))}
                       </RechartsTreemap>

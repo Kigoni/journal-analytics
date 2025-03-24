@@ -66,21 +66,21 @@ export default function StatsDialog({
   const [activeTab, setActiveTab] = useState("country");
 
   useEffect(() => {
-    if (open && journal) {
-      const loadStats = async () => {
-        setIsLoading(true);
-        try {
-          const data = await fetchJournalStats(journal.id);
-          setStats(data);
-        } catch (error) {
-          console.error("Failed to fetch journal stats:", error);
-        } finally {
-          setIsLoading(false);
-        }
-      };
-
-      loadStats();
+    if (open && journal && typeof journal === 'object') {
+  const loadStats = async () => {
+    setIsLoading(true);
+    try {
+      const data = await fetchJournalStats();
+      setStats(data);
+    } catch (error) {
+      console.error("Failed to fetch journal stats:", error);
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  loadStats();
+}
   }, [open, journal]);
 
   const handleDownload = (format: string) => {

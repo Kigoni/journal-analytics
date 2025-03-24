@@ -1,9 +1,7 @@
-"use client"
-
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Download, ArrowLeft } from "lucide-react"
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Download, ArrowLeft } from "lucide-react";
 import {
   Chart,
   ChartContainer,
@@ -11,50 +9,74 @@ import {
   ChartTooltipContent,
   ChartLegend,
   ChartLegendItem,
-} from "@/components/ui/chart"
-import { Bar, BarChart as RechartsBarChart, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts"
-import Link from "next/link"
+} from "@/components/ui/chart";
+import { Bar, BarChart as RechartsBarChart, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
+import Link from "next/link";
+
+interface CountryStat {
+  country: string;
+  count: number;
+}
 
 export default function CountriesAnalyticsPage() {
-  const [countryStats, setCountryStats] = useState<{ country: string; count: number }[]>([]);  
-  const [isLoading, setIsLoading] = useState(true)
+  const [countryStats, setCountryStats] = useState<CountryStat[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
-      setIsLoading(true)
+      setIsLoading(true);
       try {
-        // In a real app, this would be an API call
-        await new Promise((resolve) => setTimeout(resolve, 800))
-
-        // Mock data
-        const data = [
-          { country: "Nigeria", count: 245 },
-          { country: "South Africa", count: 198 },
-          { country: "Kenya", count: 156 },
-          { country: "Egypt", count: 134 },
-          { country: "Ethiopia", count: 89 },
-          { country: "Ghana", count: 76 },
-          { country: "Tanzania", count: 65 },
-          { country: "Uganda", count: 54 },
-          { country: "Morocco", count: 48 },
-          { country: "Tunisia", count: 42 },
-        ]
-
-        setCountryStats(data)
+        // Fetch data from the API
+        const response = await fetch('https://backend.afrikajournals.org/journal_api/api/journals/country-count/');
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+        const data = await response.json();
+        setCountryStats(data);
       } catch (error) {
-        console.error("Failed to fetch country stats:", error)
+        console.error("Failed to fetch country stats:", error);
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
+    };
+
+    fetchData();
+  }, []);
+
+  const handleDownload = async (format: string) => {
+    try {
+      // Fetch data from the API
+      const response = await fetch('https://backend.afrikajournals.org/journal_api/api/journals/country-count/');
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      const data = await response.json();
+
+      let blob: Blob;
+      if (format === "csv") {
+        const csvContent = "data:text/csv;charset=utf-8," +
+        data.map((e: CountryStat) => `${e.country},${e.count}`).join("\n");        blob = new Blob([csvContent], { type: "text/csv" });
+      } else if (format === "pdf") {
+        // For PDF, you would typically use a library like jsPDF to create the PDF content
+        // Here, we'll just simulate the download process
+        const pdfContent = "data:application/pdf," + encodeURIComponent("PDF content here");
+        blob = new Blob([pdfContent], { type: "application/pdf" });
+      } else {
+        throw new Error("Unsupported format");
+      }
+
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.style.display = "none";
+      a.href = url;
+      a.download = `country_stats.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error(`Failed to download stats in ${format} format:`, error);
     }
-
-    fetchData()
-  }, [])
-
-  const handleDownload = (format: string) => {
-    // In a real implementation, this would call an API endpoint to download the stats
-    alert(`Downloading country stats in ${format} format`)
-  }
+  };
 
   return (
     <main className="min-h-screen bg-gradient-to-r from-yellow-300/20 to-green-300/20">
@@ -116,6 +138,5 @@ export default function CountriesAnalyticsPage() {
         </Card>
       </div>
     </main>
-  )
+  );
 }
-

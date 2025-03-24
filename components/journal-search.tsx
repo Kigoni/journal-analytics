@@ -12,7 +12,7 @@ import JournalStats from "@/components/journal-stats";
 import { useDebounce } from "@/hooks/use-debounce";
 import { fetchJournals, fetchRecommendedJournals, fetchRecommendedFilters } from "@/lib/api";
 import AISuggestedFilters from "@/components/ai-features/ai-suggested-filters";
-import VoiceSearch from "@/components/ai-features/voice-search";
+// import VoiceSearch from "@/components/ai-features/voice-search";
 import AITrendAnalysis from "@/components/ai-features/ai-trend-analysis";
 
 // Define the types for the props and filters
@@ -78,7 +78,7 @@ export default function JournalSearch({
     const loadRecommendedFilters = async () => {
       try {
         const data = await fetchRecommendedFilters();
-        setRecommendedFilters(data.map((filter) => ({
+        setRecommendedFilters(data.map((filter: Filter) => ({
           ...filter,
           id: `${filter.category}-${filter.value}`
         })));
@@ -148,9 +148,9 @@ export default function JournalSearch({
     }
   };
 
-  const handleVoiceSearch = (query: string) => {
-    setSearchQuery(query);
-  };
+  // const handleVoiceSearch = (query: string) => {
+  //   setSearchQuery(query);
+  // };
 
   return (
     <div className="space-y-6">
@@ -169,7 +169,7 @@ export default function JournalSearch({
             <SlidersHorizontal className="h-4 w-4 mr-2" />
             Filters
           </Button>
-          <VoiceSearch onSearch={handleVoiceSearch} />
+          {/* <VoiceSearch onSearch={handleVoiceSearch} /> */}
         </div>
       </div>
 
