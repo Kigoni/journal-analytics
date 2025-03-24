@@ -1,9 +1,12 @@
-import { Configuration, OpenAIApi } from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-const openai = new OpenAIApi(configuration);
+const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+if (!apiKey) {
+  throw new Error('GEMINI_API_KEY environment variable is not set');
+}
+
+const configuration = apiKey;
+const gemini = new GoogleGenerativeAI(configuration);
 
 interface Filter {
   category: string;
@@ -88,14 +91,14 @@ export async function fetchRecommendedJournals() {
     }
     const journals = await response.json();
 
-    // Use OpenAI to generate recommendations
+    // Use Gemini AI to generate recommendations
     const prompt = `Based on the following journals, recommend a few that are related:\n${JSON.stringify(journals)}`;
-    const completion = await openai.createChatCompletion({
-      model: "gpt-3.5-turbo",
-      messages: [{ role: "user", content: prompt }],
+    const completion = await (gemini as any).generateContent({
+      model: "gemini-pro",
+      prompt: prompt,
     });
 
-    const recommendedJournals = JSON.parse((completion.data?.choices?.[0]?.message?.content) ?? '[]');
+    const recommendedJournals = JSON.parse((completion.data?.choices?.[0]?.text) ?? '[]');
     return recommendedJournals;
   } catch (error) {
     console.error("Failed to fetch recommended journals:", error);
@@ -113,14 +116,14 @@ export async function fetchRecommendedFilters() {
     }
     const journals = await response.json();
 
-    // Use OpenAI to generate filter recommendations
+    // Use Gemini AI to generate filter recommendations
     const prompt = `Based on the following journals, recommend some filters for searching:\n${JSON.stringify(journals)}`;
-    const completion = await openai.createChatCompletion({
-      model: "gpt-3.5-turbo",
-      messages: [{ role: "user", content: prompt }],
+    const completion = await (gemini as any).generateContent({
+      model: "gemini-pro",
+      prompt: prompt,
     });
 
-    const recommendedFilters = JSON.parse((completion.data?.choices?.[0]?.message?.content) ?? '[]');
+    const recommendedFilters = JSON.parse((completion.data?.choices?.[0]?.text) ?? '[]');
     return recommendedFilters;
   } catch (error) {
     console.error("Failed to fetch recommended filters:", error);
@@ -131,14 +134,14 @@ export async function fetchRecommendedFilters() {
 // Fetch AI-suggested filters based on search query
 export async function fetchAISuggestedFilters(query: string): Promise<Filter[]> {
   try {
-    // Use OpenAI to generate filter suggestions based on the query
+    // Use Gemini AI to generate filter suggestions based on the query
     const prompt = `Suggest filters for searching journals related to: "${query}"`;
-    const completion = await openai.createChatCompletion({
-      model: "gpt-3.5-turbo",
-      messages: [{ role: "user", content: prompt }],
+    const completion = await (gemini as any).generateContent({
+      model: "gemini-pro",
+      prompt: prompt,
     });
 
-    const suggestedFilters = JSON.parse((completion.data?.choices?.[0]?.message?.content) ?? '[]');
+    const suggestedFilters = JSON.parse((completion.data?.choices?.[0]?.text) ?? '[]');
     return suggestedFilters;
   } catch (error) {
     console.error("Failed to fetch AI-suggested filters:", error);
@@ -156,14 +159,14 @@ export async function fetchAISummary(journalId: string): Promise<Summary> {
     }
     const journal = await response.json();
 
-    // Use OpenAI to generate a summary
+    // Use Gemini AI to generate a summary
     const prompt = `Generate a summary for the following journal:\n${JSON.stringify(journal)}`;
-    const completion = await openai.createChatCompletion({
-      model: "gpt-3.5-turbo",
-      messages: [{ role: "user", content: prompt }],
+    const completion = await (gemini as any).generateContent({
+      model: "gemini-pro",
+      prompt: prompt,
     });
 
-    const summary = completion.data?.choices?.[0]?.message?.content ?? 'No summary available.';
+    const summary = completion.data?.choices?.[0]?.text ?? 'No summary available.';
     return { summary };
   } catch (error) {
     console.error("Failed to fetch AI summary:", error);
@@ -181,14 +184,14 @@ export async function fetchRecommendedCitations(journalId: string): Promise<Reco
     }
     const journal = await response.json();
 
-    // Use OpenAI to recommend citations
+    // Use Gemini AI to recommend citations
     const prompt = `Recommend citations for the following journal:\n${JSON.stringify(journal)}`;
-    const completion = await openai.createChatCompletion({
-      model: "gpt-3.5-turbo",
-      messages: [{ role: "user", content: prompt }],
+    const completion = await (gemini as any).generateContent({
+      model: "gemini-pro",
+      prompt: prompt,
     });
 
-    const recommendations = JSON.parse((completion.data?.choices?.[0]?.message?.content) ?? '[]');
+    const recommendations = JSON.parse((completion.data?.choices?.[0]?.text) ?? '[]');
     return recommendations;
   } catch (error) {
     console.error("Failed to fetch recommended citations:", error);
@@ -199,14 +202,14 @@ export async function fetchRecommendedCitations(journalId: string): Promise<Reco
 // Fetch AI trend analysis data
 export async function fetchAITrends(query?: string, thematicArea?: string): Promise<TrendData> {
   try {
-    // Use OpenAI to generate trend analysis data
+    // Use Gemini AI to generate trend analysis data
     const prompt = `Generate trend analysis data for the query: "${query}" and thematic area: "${thematicArea}"`;
-    const completion = await openai.createChatCompletion({
-      model: "gpt-3.5-turbo",
-      messages: [{ role: "user", content: prompt }],
+    const completion = await (gemini as any).generateContent({
+      model: "gemini-pro",
+      prompt: prompt,
     });
 
-    const trendData = JSON.parse((completion.data?.choices?.[0]?.message?.content) ?? '[]');
+    const trendData = JSON.parse((completion.data?.choices?.[0]?.text) ?? '[]');
     return trendData;
   } catch (error) {
     console.error("Failed to fetch AI trend analysis data:", error);

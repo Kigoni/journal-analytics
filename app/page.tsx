@@ -45,7 +45,7 @@ export default function Home() {
         <button
           onClick={() => setShowAIAssistant(true)}
           className="fixed bottom-6 right-6 bg-green-500 text-white rounded-full p-4 shadow-lg hover:bg-primary/90 transition-colors"
-          aria-label="Open AI Research Assistant"
+          aria-label="Research Assistant"
         >
           <div className="absolute inset-0 rounded-full bg-primary animate-ping opacity-20"></div>
           <svg

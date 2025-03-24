@@ -1,11 +1,14 @@
-import { Configuration, OpenAIApi } from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-const openai = new OpenAIApi(configuration);
+const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+if (!apiKey) {
+  throw new Error('GEMINI_API_KEY environment variable is not set');
+}
 
-console.log("API Key:", process.env.OPENAI_API_KEY);
+const configuration = apiKey;
+const gemini = new GoogleGenerativeAI(configuration);
+
+console.log("API Key:", process.env.NEXT_PUBLIC_GEMINI_API_KEY);
 
 interface Filter {
   category: string;
@@ -66,14 +69,14 @@ export async function fetchRecommendedJournals() {
     }
     const journals = await response.json();
 
-    // Use OpenAI to generate recommendations
+    // Use Gemini to generate recommendations
     const prompt = `Based on the following journals, recommend a few that are related:\n${JSON.stringify(journals)}`;
-    const completion = await openai.createChatCompletion({
-      model: "gpt-3.5-turbo",
-      messages: [{ role: "user", content: prompt }],
+    const completion = await (gemini as any).generateContent({
+      model: "gemini-pro",
+      prompt: prompt,
     });
 
-    const recommendedJournals = JSON.parse((completion.data.choices[0] as any).message.content);
+    const recommendedJournals = JSON.parse((completion.data.choices[0] as any).text);
     return recommendedJournals;
   } catch (error) {
     console.error("Failed to fetch recommended journals:", error);
@@ -91,14 +94,14 @@ export async function fetchRecommendedFilters() {
     }
     const journals = await response.json();
 
-    // Use OpenAI to generate filter recommendations
+    // Use Gemini to generate filter recommendations
     const prompt = `Based on the following journals, recommend some filters for searching:\n${JSON.stringify(journals)}`;
-    const completion = await openai.createChatCompletion({
-      model: "gpt-3.5-turbo",
-      messages: [{ role: "user", content: prompt }],
+    const completion = await (gemini as any).generateContent({
+      model: "gemini-pro",
+      prompt: prompt,
     });
 
-    const recommendedFilters = JSON.parse((completion.data.choices[0] as any).message.content);
+    const recommendedFilters = JSON.parse((completion.data.choices[0] as any).text);
     return recommendedFilters;
   } catch (error) {
     console.error("Failed to fetch recommended filters:", error);
@@ -116,14 +119,14 @@ export async function fetchSimilarJournals(journalId: string) {
     }
     const journal = await response.json();
 
-    // Use OpenAI to find similar journals
+    // Use Gemini to find similar journals
     const prompt = `Find journals similar to the following:\n${JSON.stringify(journal)}`;
-    const completion = await openai.createChatCompletion({
-      model: "gpt-3.5-turbo",
-      messages: [{ role: "user", content: prompt }],
+    const completion = await (gemini as any).generateContent({
+      model: "gemini-pro",
+      prompt: prompt,
     });
 
-    const similarJournals = JSON.parse((completion.data.choices[0] as any).message.content);
+    const similarJournals = JSON.parse((completion.data.choices[0] as any).text);
     return similarJournals;
   } catch (error) {
     console.error("Failed to fetch similar journals:", error);

@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Sparkles, Quote } from "lucide-react";
-import { Configuration, OpenAIApi } from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 type OnOpenChangeCallback = (isOpen: boolean) => void;
 
@@ -29,10 +29,15 @@ interface CitationsDialogProps {
   onOpenChange: OnOpenChangeCallback;
 }
 
-const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-const openai = new OpenAIApi(configuration);
+const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+if (!apiKey) {
+  throw new Error('GEMINI_API_KEY environment variable is not set');
+}
+
+const configuration = apiKey;
+const gemini = new GoogleGenerativeAI(configuration);
+
+console.log("API Key:", process.env.NEXT_PUBLIC_GEMINI_API_KEY);
 
 export default function CitationsDialog({ journal, open, onOpenChange }: CitationsDialogProps) {
   const [selectedCitation, setSelectedCitation] = useState<string | null>(null);
@@ -50,14 +55,15 @@ export default function CitationsDialog({ journal, open, onOpenChange }: Citatio
         }
         const data = await response.json();
 
-        // Use OpenAI to generate citations based on the journal data
+        // Use Gemini AI to generate citations based on the journal data
         const prompt = `Based on the following journal, generate relevant citations:\n${JSON.stringify(data)}`;
-        const completion = await openai.createChatCompletion({
-          model: "gpt-3.5-turbo",
-          messages: [{ role: "user", content: prompt }],
+        const completion = await (gemini as any).generateContent({
+          model: "gemini-pro",
+          prompt: prompt,
         });
+    
 
-        const aiCitations = JSON.parse((completion.data.choices[0] as any).message.content);
+        const aiCitations = JSON.parse((completion.data.choices[0] as any).text);
         setCitations(aiCitations);
       } catch (error) {
         console.error("Failed to fetch citations:", error);

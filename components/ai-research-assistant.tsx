@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sparkles, Search, BookOpen, FileText, Download, Send, Loader2 } from "lucide-react";
-import { Configuration, OpenAIApi } from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 interface AIResearchAssistantProps {
   open: boolean;
@@ -24,95 +24,103 @@ interface JournalRecommendation {
   reason: string;
 }
 
-const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-const openai = new OpenAIApi(configuration);
+const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+if (!apiKey) {
+  throw new Error('GEMINI_API_KEY environment variable is not set');
+}
 
 export default function AIResearchAssistant({ open, onOpenChange }: AIResearchAssistantProps) {
   const [query, setQuery] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false);
+  const [isLoadingJournals, setIsLoadingJournals] = useState(false);
+  const [isLoadingQuery, setIsLoadingQuery] = useState(false);
   const [activeTab, setActiveTab] = useState("assistant");
   const [recommendations, setRecommendations] = useState<ResearchRecommendation[]>([]);
   const [journalRecommendations, setJournalRecommendations] = useState<JournalRecommendation[]>([]);
 
   useEffect(() => {
-    const fetchRecommendations = async () => {
-      setIsLoading(true);
-      try {
-        // Fetch research recommendations from the API
-        const response = await fetch('https://backend.afrikajournals.org/journal_api/api/article/');
-        if (!response.ok) {
-          throw new Error(`API error: ${response.status}`);
+    if (open) {
+      fetchRecommendations();
+      fetchJournalRecommendations();
+    }
+  }, [open]);
+
+  const fetchRecommendations = async () => {
+    setIsLoadingRecommendations(true);
+    try {
+      const response = await fetch('https://backend.afrikajournals.org/journal_api/api/article/');
+      if (!response.ok) throw new Error(`API error: ${response.status}`);
+
+      const data = await response.json();
+      const gemini = new GoogleGenerativeAI(apiKey!); // Ensure apiKey is not undefined
+      const model = gemini.getGenerativeModel({ model: "gemini-pro" });
+      const result = await model.generateContent({
+        contents: [{ role: "user", parts: [{ text: `Recommend research topics:\n${JSON.stringify(data)}` }] }],
+      });
+
+      const textResponse = result.content?.parts[0]?.text;
+      if (textResponse) {
+        try {
+          setRecommendations(JSON.parse(textResponse));
+        } catch (parseError) {
+          console.error("Error parsing AI response:", parseError);
         }
-        const data = await response.json();
-
-        // Use OpenAI to generate research recommendations
-        const prompt = `Based on the following articles, recommend some research topics:\n${JSON.stringify(data)}`;
-        const completion = await openai.createChatCompletion({
-          model: "gpt-3.5-turbo",
-          messages: [{ role: "user", content: prompt }],
-        });
-
-        const aiRecommendations = JSON.parse((completion.data.choices[0] as any).message.content);
-        setRecommendations(aiRecommendations);
-      } catch (error) {
-        console.error("Failed to fetch research recommendations:", error);
-      } finally {
-        setIsLoading(false);
       }
-    };
+    } catch (error) {
+      console.error("Failed to fetch research recommendations:", error);
+    } finally {
+      setIsLoadingRecommendations(false);
+    }
+  };
 
-    const fetchJournalRecommendations = async () => {
-      setIsLoading(true);
-      try {
-        // Fetch journal recommendations from the API
-        const response = await fetch('https://backend.afrikajournals.org/journal_api/journals/');
-        if (!response.ok) {
-          throw new Error(`API error: ${response.status}`);
+  const fetchJournalRecommendations = async () => {
+    setIsLoadingJournals(true);
+    try {
+      const response = await fetch('https://backend.afrikajournals.org/journal_api/journals/');
+      if (!response.ok) throw new Error(`API error: ${response.status}`);
+
+      const data = await response.json();
+      const gemini = new GoogleGenerativeAI(apiKey!); // Ensure apiKey is not undefined
+      const model = gemini.getGenerativeModel({ model: "gemini-pro" });
+      const result = await model.generateContent({
+        contents: [{ role: "user", parts: [{ text: `Recommend journals based on interests:\n${JSON.stringify(data)}` }] }],
+      });
+
+      const textResponse = result.content?.parts[0]?.text;
+      if (textResponse) {
+        try {
+          setJournalRecommendations(JSON.parse(textResponse));
+        } catch (parseError) {
+          console.error("Error parsing AI response:", parseError);
         }
-        const data = await response.json();
-
-        // Use OpenAI to generate journal recommendations
-        const prompt = `Based on the following journals, recommend some journals that match the user's interests:\n${JSON.stringify(data)}`;
-        const completion = await openai.createChatCompletion({
-          model: "gpt-3.5-turbo",
-          messages: [{ role: "user", content: prompt }],
-        });
-
-        const aiJournalRecommendations = JSON.parse((completion.data.choices[0] as any).message.content);
-        setJournalRecommendations(aiJournalRecommendations);
-      } catch (error) {
-        console.error("Failed to fetch journal recommendations:", error);
-      } finally {
-        setIsLoading(false);
       }
-    };
-
-    fetchRecommendations();
-    fetchJournalRecommendations();
-  }, []);
+    } catch (error) {
+      console.error("Failed to fetch journal recommendations:", error);
+    } finally {
+      setIsLoadingJournals(false);
+    }
+  };
 
   const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     if (!query.trim()) return;
 
-    setIsLoading(true);
+    setIsLoadingQuery(true);
     try {
-      // Use OpenAI to generate a response based on the query
-      const prompt = `Based on the following query, provide a detailed response:\n${query}`;
-      const completion = await openai.createChatCompletion({
-        model: "gpt-3.5-turbo",
-        messages: [{ role: "user", content: prompt }],
+      const gemini = new GoogleGenerativeAI(apiKey!); // Ensure apiKey is not undefined
+      const model = gemini.getGenerativeModel({ model: "gemini-pro" });
+      const result = await model.generateContent({
+        contents: [{ role: "user", parts: [{ text: `Provide a detailed response:\n${query}` }] }],
       });
 
-      const response = (completion.data.choices[0] as any).message.content;
-      // In a real implementation, you would process the response here
-      console.log(response);
+      const response = result.content?.parts[0]?.text;
+      if (response) {
+        console.log(response);
+      }
     } catch (error) {
       console.error("Failed to process query:", error);
     } finally {
-      setIsLoading(false);
+      setIsLoadingQuery(false);
     }
   };
 
@@ -159,8 +167,8 @@ export default function AIResearchAssistant({ open, onOpenChange }: AIResearchAs
                 onChange={(e) => setQuery(e.target.value)}
                 className="flex-1"
               />
-              <Button type="submit" size="icon" disabled={isLoading}>
-                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              <Button type="submit" size="icon" disabled={isLoadingQuery}>
+                {isLoadingQuery ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               </Button>
             </form>
           </TabsContent>
@@ -172,27 +180,31 @@ export default function AIResearchAssistant({ open, onOpenChange }: AIResearchAs
             </div>
 
             <div className="space-y-4">
-              {recommendations.map((rec, index) => (
-                <Card key={index} className="p-4 hover:shadow-md transition-shadow">
-                  <div className="flex justify-between items-start mb-2">
-                    <h4 className="font-medium">{rec.title}</h4>
-                    <div className="bg-primary/10 text-primary text-xs px-2 py-1 rounded-full">
-                      {rec.relevance}% match
+              {recommendations.length > 0 ? (
+                recommendations.map((rec, index) => (
+                  <Card key={index} className="p-4 hover:shadow-md transition-shadow">
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="font-medium">{rec.title}</h4>
+                      <div className="bg-primary/10 text-primary text-xs px-2 py-1 rounded-full">
+                        {rec.relevance}% match
+                      </div>
                     </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-2">Recommended journals: {rec.journals.join(", ")}</p>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm">
-                      <Search className="h-3 w-3 mr-1" />
-                      Explore
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      <Download className="h-3 w-3 mr-1" />
-                      Save
-                    </Button>
-                  </div>
-                </Card>
-              ))}
+                    <p className="text-sm text-muted-foreground mb-2">Recommended journals: {rec.journals.join(", ")}</p>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm">
+                        <Search className="h-3 w-3 mr-1" />
+                        Explore
+                      </Button>
+                      <Button variant="outline" size="sm">
+                        <Download className="h-3 w-3 mr-1" />
+                        Save
+                      </Button>
+                    </div>
+                  </Card>
+                ))
+              ) : (
+                <p>No recommendations available.</p>
+              )}
             </div>
           </TabsContent>
 
@@ -203,28 +215,32 @@ export default function AIResearchAssistant({ open, onOpenChange }: AIResearchAs
             </div>
 
             <div className="space-y-4">
-              {journalRecommendations.map((journal, index) => (
-                <Card key={index} className="p-4 hover:shadow-md transition-shadow">
-                  <div className="flex justify-between items-start mb-2">
-                    <h4 className="font-medium">{journal.title}</h4>
-                    <div className="bg-primary/10 text-primary text-xs px-2 py-1 rounded-full">{journal.match}</div>
-                  </div>
-                  <div className="flex items-center gap-1 mb-2">
-                    <Sparkles className="h-3 w-3 text-yellow-500" />
-                    <p className="text-xs text-muted-foreground">{journal.reason}</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm">
-                      <FileText className="h-3 w-3 mr-1" />
-                      View Journal
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      <BookOpen className="h-3 w-3 mr-1" />
-                      Follow
-                    </Button>
-                  </div>
-                </Card>
-              ))}
+              {journalRecommendations.length > 0 ? (
+                journalRecommendations.map((journal, index) => (
+                  <Card key={index} className="p-4 hover:shadow-md transition-shadow">
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="font-medium">{journal.title}</h4>
+                      <div className="bg-primary/10 text-primary text-xs px-2 py-1 rounded-full">{journal.match}</div>
+                    </div>
+                    <div className="flex items-center gap-1 mb-2">
+                      <Sparkles className="h-3 w-3 text-yellow-500" />
+                      <p className="text-xs text-muted-foreground">{journal.reason}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm">
+                        <FileText className="h-3 w-3 mr-1" />
+                        View Journal
+                      </Button>
+                      <Button variant="outline" size="sm">
+                        <BookOpen className="h-3 w-3 mr-1" />
+                        Follow
+                      </Button>
+                    </div>
+                  </Card>
+                ))
+              ) : (
+                <p>No journal recommendations available.</p>
+              )}
             </div>
           </TabsContent>
         </Tabs>
