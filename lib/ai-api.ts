@@ -1,8 +1,8 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+const apiKey = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY;
 if (!apiKey) {
-  throw new Error('GEMINI_API_KEY environment variable is not set');
+  throw new Error("OPENROUTER_API_KEY environment variable is not set");
 }
 
 const configuration = apiKey;
@@ -41,7 +41,9 @@ interface TrendData {
 export async function fetchJournals(query = "", filters: Filter[] = []) {
   try {
     // Fetch all journals from the API
-    const response = await fetch('https://backend.afrikajournals.org/journal_api/journals/');
+    const response = await fetch(
+      "https://backend.afrikajournals.org/journal_api/journals/"
+    );
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
@@ -49,7 +51,8 @@ export async function fetchJournals(query = "", filters: Filter[] = []) {
 
     // Filter journals based on search query and filters
     let filteredJournals = journals.filter((journal: any) => {
-      const matchesQuery = !query ||
+      const matchesQuery =
+        !query ||
         journal.title.toLowerCase().includes(query.toLowerCase()) ||
         journal.description.toLowerCase().includes(query.toLowerCase()) ||
         journal.thematicArea.toLowerCase().includes(query.toLowerCase());
@@ -85,20 +88,29 @@ export async function fetchJournals(query = "", filters: Filter[] = []) {
 export async function fetchRecommendedJournals() {
   try {
     // Fetch all journals from the API
-    const response = await fetch('https://backend.afrikajournals.org/journal_api/journals/');
+    const response = await fetch(
+      "https://backend.afrikajournals.org/journal_api/journals/"
+    );
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
     const journals = await response.json();
 
-    // Use Gemini AI to generate recommendations
-    const prompt = `Based on the following journals, recommend a few that are related:\n${JSON.stringify(journals)}`;
-    const completion = await (gemini as any).generateContent({
-      model: "gemini-pro",
-      prompt: prompt,
-    });
+    // Prepare the prompt
+    const prompt = `Based on the following journals, recommend a few that are related:\n${JSON.stringify(
+      journals
+    )}`;
 
-    const recommendedJournals = JSON.parse((completion.data?.choices?.[0]?.text) ?? '[]');
+    // Initialize the Gemini model
+    const model = gemini.getGenerativeModel({ model: "gemini-pro" });
+
+    // Generate AI response
+    const result = await model.generateContent(prompt);
+    const responseText = await result.response.text();
+
+    // Parse the response into JSON
+    const recommendedJournals = JSON.parse(responseText || "[]");
+
     return recommendedJournals;
   } catch (error) {
     console.error("Failed to fetch recommended journals:", error);
@@ -110,20 +122,26 @@ export async function fetchRecommendedJournals() {
 export async function fetchRecommendedFilters() {
   try {
     // Fetch all journals from the API
-    const response = await fetch('https://backend.afrikajournals.org/journal_api/journals/');
+    const response = await fetch(
+      "https://backend.afrikajournals.org/journal_api/journals/"
+    );
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
     const journals = await response.json();
 
     // Use Gemini AI to generate filter recommendations
-    const prompt = `Based on the following journals, recommend some filters for searching:\n${JSON.stringify(journals)}`;
+    const prompt = `Based on the following journals, recommend some filters for searching:\n${JSON.stringify(
+      journals
+    )}`;
     const completion = await (gemini as any).generateContent({
       model: "gemini-pro",
       prompt: prompt,
     });
 
-    const recommendedFilters = JSON.parse((completion.data?.choices?.[0]?.text) ?? '[]');
+    const recommendedFilters = JSON.parse(
+      completion.data?.choices?.[0]?.text ?? "[]"
+    );
     return recommendedFilters;
   } catch (error) {
     console.error("Failed to fetch recommended filters:", error);
@@ -132,7 +150,9 @@ export async function fetchRecommendedFilters() {
 }
 
 // Fetch AI-suggested filters based on search query
-export async function fetchAISuggestedFilters(query: string): Promise<Filter[]> {
+export async function fetchAISuggestedFilters(
+  query: string
+): Promise<Filter[]> {
   try {
     // Use Gemini AI to generate filter suggestions based on the query
     const prompt = `Suggest filters for searching journals related to: "${query}"`;
@@ -141,7 +161,9 @@ export async function fetchAISuggestedFilters(query: string): Promise<Filter[]> 
       prompt: prompt,
     });
 
-    const suggestedFilters = JSON.parse((completion.data?.choices?.[0]?.text) ?? '[]');
+    const suggestedFilters = JSON.parse(
+      completion.data?.choices?.[0]?.text ?? "[]"
+    );
     return suggestedFilters;
   } catch (error) {
     console.error("Failed to fetch AI-suggested filters:", error);
@@ -150,23 +172,34 @@ export async function fetchAISuggestedFilters(query: string): Promise<Filter[]> 
 }
 
 // Fetch AI-generated summary for a journal
-export async function fetchAISummary(journalId: string): Promise<Summary> {
+export async function fetchAISummary(journalText: string): Promise<Summary> {
   try {
-    // Fetch journal details from the API
-    const response = await fetch(`https://backend.afrikajournals.org/journal_api/journals/${journalId}`);
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
+    const prompt = `Generate a short 1 paragraph summary for the following journal:\n${journalText}`;
+
+    // Send request to OpenRouter
+    const openRouterResponse = await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "mistralai/mistral-small-3.1-24b-instruct:free",
+          messages: [{ role: "user", content: prompt }],
+          max_tokens: 500,
+          temperature: 0.7,
+        }),
+      }
+    );
+
+    if (!openRouterResponse.ok) {
+      throw new Error(`OpenRouter API error: ${openRouterResponse.status}`);
     }
-    const journal = await response.json();
 
-    // Use Gemini AI to generate a summary
-    const prompt = `Generate a summary for the following journal:\n${JSON.stringify(journal)}`;
-    const completion = await (gemini as any).generateContent({
-      model: "gemini-pro",
-      prompt: prompt,
-    });
-
-    const summary = completion.data?.choices?.[0]?.text ?? 'No summary available.';
+    const result = await openRouterResponse.json();
+    const summary = result.choices?.[0]?.message?.content || "[]";
     return { summary };
   } catch (error) {
     console.error("Failed to fetch AI summary:", error);
@@ -175,23 +208,31 @@ export async function fetchAISummary(journalId: string): Promise<Summary> {
 }
 
 // Fetch AI-recommended citations
-export async function fetchRecommendedCitations(journalId: string): Promise<Recommendation[]> {
+export async function fetchRecommendedCitations(
+  journalId: string
+): Promise<Recommendation[]> {
   try {
     // Fetch journal details from the API
-    const response = await fetch(`https://backend.afrikajournals.org/journal_api/journals/${journalId}`);
+    const response = await fetch(
+      `https://backend.afrikajournals.org/journal_api/journals/${journalId}`
+    );
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
     const journal = await response.json();
 
     // Use Gemini AI to recommend citations
-    const prompt = `Recommend citations for the following journal:\n${JSON.stringify(journal)}`;
+    const prompt = `Recommend citations for the following journal:\n${JSON.stringify(
+      journal
+    )}`;
     const completion = await (gemini as any).generateContent({
       model: "gemini-pro",
       prompt: prompt,
     });
 
-    const recommendations = JSON.parse((completion.data?.choices?.[0]?.text) ?? '[]');
+    const recommendations = JSON.parse(
+      completion.data?.choices?.[0]?.text ?? "[]"
+    );
     return recommendations;
   } catch (error) {
     console.error("Failed to fetch recommended citations:", error);
@@ -200,7 +241,10 @@ export async function fetchRecommendedCitations(journalId: string): Promise<Reco
 }
 
 // Fetch AI trend analysis data
-export async function fetchAITrends(query?: string, thematicArea?: string): Promise<TrendData> {
+export async function fetchAITrends(
+  query?: string,
+  thematicArea?: string
+): Promise<TrendData> {
   try {
     // Use Gemini AI to generate trend analysis data
     const prompt = `Generate trend analysis data for the query: "${query}" and thematic area: "${thematicArea}"`;
@@ -209,7 +253,7 @@ export async function fetchAITrends(query?: string, thematicArea?: string): Prom
       prompt: prompt,
     });
 
-    const trendData = JSON.parse((completion.data?.choices?.[0]?.text) ?? '[]');
+    const trendData = JSON.parse(completion.data?.choices?.[0]?.text ?? "[]");
     return trendData;
   } catch (error) {
     console.error("Failed to fetch AI trend analysis data:", error);
@@ -226,7 +270,9 @@ export async function fetchAITrends(query?: string, thematicArea?: string): Prom
 export async function fetchJournalVolumes(journalId: string) {
   try {
     // Fetch volumes for the given journal ID
-    const volumesResponse = await fetch(`https://backend.afrikajournals.org/journal_api/api/volume/?journalId=${journalId}`);
+    const volumesResponse = await fetch(
+      `https://backend.afrikajournals.org/journal_api/api/volume/?journalId=${journalId}`
+    );
     if (!volumesResponse.ok) {
       throw new Error(`API error: ${volumesResponse.status}`);
     }
@@ -235,7 +281,9 @@ export async function fetchJournalVolumes(journalId: string) {
     // Fetch articles for each volume
     const volumesWithArticles = await Promise.all(
       volumes.map(async (volume: any) => {
-        const articlesResponse = await fetch(`https://backend.afrikajournals.org/journal_api/api/article/?volumeId=${volume.id}`);
+        const articlesResponse = await fetch(
+          `https://backend.afrikajournals.org/journal_api/api/article/?volumeId=${volume.id}`
+        );
         if (!articlesResponse.ok) {
           throw new Error(`API error: ${articlesResponse.status}`);
         }
@@ -254,7 +302,9 @@ export async function fetchJournalVolumes(journalId: string) {
 // Fetch thematic areas
 export async function fetchThematicAreas() {
   try {
-    const response = await fetch('https://backend.afrikajournals.org/journal_api/api/thematic/');
+    const response = await fetch(
+      "https://backend.afrikajournals.org/journal_api/api/thematic/"
+    );
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
@@ -268,7 +318,9 @@ export async function fetchThematicAreas() {
 // Fetch platforms
 export async function fetchPlatforms() {
   try {
-    const response = await fetch('https://backend.afrikajournals.org/journal_api/api/platform/');
+    const response = await fetch(
+      "https://backend.afrikajournals.org/journal_api/api/platform/"
+    );
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
@@ -282,7 +334,9 @@ export async function fetchPlatforms() {
 // Fetch languages
 export async function fetchLanguages() {
   try {
-    const response = await fetch('https://backend.afrikajournals.org/journal_api/api/languages/');
+    const response = await fetch(
+      "https://backend.afrikajournals.org/journal_api/api/languages/"
+    );
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
@@ -296,7 +350,9 @@ export async function fetchLanguages() {
 // Fetch countries
 export async function fetchCountries() {
   try {
-    const response = await fetch('https://backend.afrikajournals.org/journal_api/api/country/');
+    const response = await fetch(
+      "https://backend.afrikajournals.org/journal_api/api/country/"
+    );
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
@@ -310,7 +366,9 @@ export async function fetchCountries() {
 // Fetch journals from the backend API with pagination
 export async function fetchJournalsFromAPI(page = 1, limit = 10) {
   try {
-    const response = await fetch(`https://backend.afrikajournals.org/journal_api/journals/?page=${page}&limit=${limit}`);
+    const response = await fetch(
+      `https://backend.afrikajournals.org/journal_api/journals/?page=${page}&limit=${limit}`
+    );
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
@@ -324,19 +382,27 @@ export async function fetchJournalsFromAPI(page = 1, limit = 10) {
 // Fetch journal details from the backend API
 export async function fetchJournalDetailsFromAPI(journalId: string) {
   try {
-    const response = await fetch(`https://backend.afrikajournals.org/journal_api/journals/${journalId}`);
+    const response = await fetch(
+      `https://backend.afrikajournals.org/journal_api/journals/${journalId}`
+    );
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
     return await response.json();
   } catch (error) {
-    console.error(`Failed to fetch journal details for ID ${journalId}:`, error);
+    console.error(
+      `Failed to fetch journal details for ID ${journalId}:`,
+      error
+    );
     return null;
   }
 }
 
 // Search journals with filters from the backend API
-export async function searchJournalsFromAPI(query = "", filters: { [key: string]: string } = {}) {
+export async function searchJournalsFromAPI(
+  query = "",
+  filters: { [key: string]: string } = {}
+) {
   try {
     // Build query parameters
     const params = new URLSearchParams();
@@ -349,7 +415,9 @@ export async function searchJournalsFromAPI(query = "", filters: { [key: string]
       }
     });
 
-    const response = await fetch(`https://backend.afrikajournals.org/journal_api/journals/search/?${params.toString()}`);
+    const response = await fetch(
+      `https://backend.afrikajournals.org/journal_api/journals/search/?${params.toString()}`
+    );
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
@@ -363,7 +431,9 @@ export async function searchJournalsFromAPI(query = "", filters: { [key: string]
 // Fetch country statistics from the backend API
 export async function fetchCountryStatsFromAPI() {
   try {
-    const response = await fetch(`https://backend.afrikajournals.org/journal_api/api/journals/country-count/`);
+    const response = await fetch(
+      `https://backend.afrikajournals.org/journal_api/api/journals/country-count/`
+    );
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
@@ -375,7 +445,10 @@ export async function fetchCountryStatsFromAPI() {
 }
 
 // Download statistics in various formats
-export async function downloadStatsFromAPI(format = "csv", filters: { [key: string]: string } = {}) {
+export async function downloadStatsFromAPI(
+  format = "csv",
+  filters: { [key: string]: string } = {}
+) {
   try {
     // Build query parameters
     const params = new URLSearchParams();
@@ -389,7 +462,7 @@ export async function downloadStatsFromAPI(format = "csv", filters: { [key: stri
     });
 
     const response = await fetch(
-      `https://backend.afrikajournals.org/journal_api/journals/stats/download/?${params.toString()}`,
+      `https://backend.afrikajournals.org/journal_api/journals/stats/download/?${params.toString()}`
     );
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
@@ -410,7 +483,12 @@ export async function downloadStatsFromAPI(format = "csv", filters: { [key: stri
 }
 
 // Fetch paginated journals from the API
-export async function fetchPaginatedJournals(page = 1, limit = 10, query = "", filters: Filter[] = []) {
+export async function fetchPaginatedJournals(
+  page = 1,
+  limit = 10,
+  query = "",
+  filters: Filter[] = []
+) {
   try {
     // Build query parameters
     const params = new URLSearchParams();
@@ -428,7 +506,9 @@ export async function fetchPaginatedJournals(page = 1, limit = 10, query = "", f
       });
     }
 
-    const response = await fetch(`https://backend.afrikajournals.org/journal_api/journals/?${params.toString()}`);
+    const response = await fetch(
+      `https://backend.afrikajournals.org/journal_api/journals/?${params.toString()}`
+    );
 
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);

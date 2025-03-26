@@ -5,12 +5,22 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Search, SlidersHorizontal, BookOpen, BarChart } from "lucide-react";
+import {
+  Loader2,
+  Search,
+  SlidersHorizontal,
+  BookOpen,
+  BarChart,
+} from "lucide-react";
 import JournalList from "@/components/journal-list";
 import FilterPanel from "@/components/filter-panel";
 import JournalStats from "@/components/journal-stats";
 import { useDebounce } from "@/hooks/use-debounce";
-import { fetchJournals, fetchRecommendedJournals, fetchRecommendedFilters } from "@/lib/api";
+import {
+  fetchJournals,
+  fetchRecommendedJournals,
+  fetchRecommendedFilters,
+} from "@/lib/api";
 import AISuggestedFilters from "@/components/ai-features/ai-suggested-filters";
 // import VoiceSearch from "@/components/ai-features/voice-search";
 import AITrendAnalysis from "@/components/ai-features/ai-trend-analysis";
@@ -78,10 +88,12 @@ export default function JournalSearch({
     const loadRecommendedFilters = async () => {
       try {
         const data = await fetchRecommendedFilters();
-        setRecommendedFilters(data.map((filter: Filter) => ({
-          ...filter,
-          id: `${filter.category}-${filter.value}`
-        })));
+        setRecommendedFilters(
+          data.map((filter: Filter) => ({
+            ...filter,
+            id: `${filter.category}-${filter.value}`,
+          }))
+        );
       } catch (error) {
         console.error("Failed to fetch recommended filters:", error);
       }
@@ -103,12 +115,14 @@ export default function JournalSearch({
       setIsLoading(true);
       try {
         // Use the searchJournalsFromAPI function for real API integration
-        const data = await fetchJournals(debouncedSearchQuery, activeFilters,);
+        const data = await fetchJournals(debouncedSearchQuery, activeFilters);
         setJournals(data);
         setTotalResults(data.length);
 
         // Update selected thematic area if there's a filter for it
-        const thematicFilter = activeFilters.find((f) => f.category === "thematicArea");
+        const thematicFilter = activeFilters.find(
+          (f) => f.category === "thematicArea"
+        );
         setSelectedThematicArea(thematicFilter ? thematicFilter.value : "");
       } catch (error) {
         console.error("Failed to fetch journals:", error);
@@ -133,7 +147,11 @@ export default function JournalSearch({
     setActiveFilters(activeFilters.filter((f) => f.id !== filter.id));
   };
 
-  const handleApplySuggestedFilter = (filter: { category: string; value: string; label?: string }) => {
+  const handleApplySuggestedFilter = (filter: {
+    category: string;
+    value: string;
+    label?: string;
+  }) => {
     const filterId = `${filter.category}-${filter.value}`;
     const isAlreadyApplied = activeFilters.some((f) => f.id === filterId);
 
@@ -165,7 +183,11 @@ export default function JournalSearch({
           />
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleFilterToggle} className="bg-white/80 backdrop-blur-sm">
+          <Button
+            variant="outline"
+            onClick={handleFilterToggle}
+            className="bg-white/80 backdrop-blur-sm"
+          >
             <SlidersHorizontal className="h-4 w-4 mr-2" />
             Filters
           </Button>
@@ -175,7 +197,10 @@ export default function JournalSearch({
 
       {/* AI Suggested Filters */}
       {debouncedSearchQuery && (
-        <AISuggestedFilters query={debouncedSearchQuery} onApplyFilter={handleApplySuggestedFilter} />
+        <AISuggestedFilters
+          query={debouncedSearchQuery}
+          onApplyFilter={handleApplySuggestedFilter}
+        />
       )}
 
       {/* Conditional rendering for the FilterPanel */}
@@ -190,14 +215,26 @@ export default function JournalSearch({
       {activeFilters.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {activeFilters.map((filter) => (
-            <Badge key={filter.id} variant="secondary" className="flex items-center gap-1">
+            <Badge
+              key={filter.id}
+              variant="secondary"
+              className="flex items-center gap-1"
+            >
               {filter.label}: {filter.value}
-              <button onClick={() => handleFilterRemove(filter)} className="ml-1 rounded-full hover:bg-muted p-1">
+              <button
+                onClick={() => handleFilterRemove(filter)}
+                className="ml-1 rounded-full hover:bg-muted p-1"
+              >
                 ×
               </button>
             </Badge>
           ))}
-          <Button variant="ghost" size="sm" onClick={() => setActiveFilters([])} className="h-6">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setActiveFilters([])}
+            className="h-6"
+          >
             Clear all
           </Button>
         </div>
@@ -215,13 +252,21 @@ export default function JournalSearch({
           {activeFilters.length > 0 && (
             <span>
               {" "}
-              with <span className="font-medium">{activeFilters.length}</span> active filters
+              with <span className="font-medium">
+                {activeFilters.length}
+              </span>{" "}
+              active filters
             </span>
           )}
         </p>
       </div>
 
-      <Tabs defaultValue="journals" value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs
+        defaultValue="journals"
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="w-full"
+      >
         <TabsList className="grid w-full grid-cols-2 bg-white/80 backdrop-blur-sm">
           <TabsTrigger value="journals">
             <BookOpen className="h-4 w-4 mr-2" />
@@ -245,7 +290,10 @@ export default function JournalSearch({
           <JournalStats journals={journals} activeFilters={activeFilters} />
 
           {/* AI Trend Analysis */}
-          <AITrendAnalysis query={debouncedSearchQuery} thematicArea={selectedThematicArea} />
+          <AITrendAnalysis
+            query={debouncedSearchQuery}
+            thematicArea={selectedThematicArea}
+          />
         </TabsContent>
       </Tabs>
     </div>

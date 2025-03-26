@@ -1,33 +1,36 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Sparkles, Loader2 } from "lucide-react"
-import { fetchAISummary } from "@/lib/ai-api"
+import { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Sparkles, Loader2 } from "lucide-react";
+import { fetchAISummary } from "@/lib/ai-api";
 
 interface AISummarizationProps {
-  journalId: string
-  description: string
+  journalId: number;
+  description: string;
 }
 
-export default function AISummarization({ journalId, description }: AISummarizationProps) {
-  const [summary, setSummary] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const [isExpanded, setIsExpanded] = useState(false)
+export default function AISummarization({
+  journalId,
+  description,
+}: AISummarizationProps) {
+  const [summary, setSummary] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const generateSummary = async () => {
-    setIsLoading(true)
+    setIsLoading(true);
     try {
-      const data = await fetchAISummary(journalId)
-      setSummary(data.summary)
-      setIsExpanded(true)
+      const data = await fetchAISummary(description);
+      setSummary(data.summary);
+      setIsExpanded(true);
     } catch (error) {
-      console.error("Failed to fetch AI summary:", error)
+      console.error("Failed to fetch AI summary:", error);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="space-y-2">
@@ -56,7 +59,9 @@ export default function AISummarization({ journalId, description }: AISummarizat
           <CardContent className="p-4 space-y-2">
             <div className="flex items-center gap-2 mb-1">
               <Sparkles className="h-4 w-4 text-purple-500" />
-              <span className="text-sm font-medium text-purple-800">AI-Generated Summary</span>
+              <span className="text-sm font-medium text-purple-800">
+                AI-Generated Summary
+              </span>
             </div>
             <p className="text-sm">{summary}</p>
             <Button
@@ -71,6 +76,5 @@ export default function AISummarization({ journalId, description }: AISummarizat
         </Card>
       )}
     </div>
-  )
+  );
 }
-

@@ -1,8 +1,14 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { Journal } from "@/data/journalData";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+// const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+// if (!apiKey) {
+//   throw new Error("GEMINI_API_KEY environment variable is not set");
+// }
+
+const apiKey = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY;
 if (!apiKey) {
-  throw new Error('GEMINI_API_KEY environment variable is not set');
+  throw new Error("OPENROUTER_API_KEY environment variable is not set");
 }
 
 const configuration = apiKey;
@@ -16,71 +22,99 @@ interface Filter {
 }
 
 // Fetch journals based on search query and filters
-export async function fetchJournals(query = "", filters: Filter[] = []) {
+export async function fetchJournals(
+  query = "",
+  page = 1,
+  limit = 10,
+  filters: Filter[] = []
+) {
   try {
     // Fetch all journals from the API
-    const response = await fetch('https://backend.afrikajournals.org/journal_api/journals/');
+    const response = await fetch(
+      `https://backend.afrikajournals.org/journal_api/journals/search/?query=${query}&page=${page}&page_size=${limit}`
+    );
+
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
-    const journals = await response.json();
 
     // Filter journals based on search query and filters
-    let filteredJournals = journals.filter((journal: any) => {
-      const matchesQuery = !query ||
-        journal.title.toLowerCase().includes(query.toLowerCase()) ||
-        journal.description.toLowerCase().includes(query.toLowerCase()) ||
-        journal.thematicArea.toLowerCase().includes(query.toLowerCase());
+    // let filteredJournals = journals.results.filter((journal: Journal) => {
+    //   const matchesQuery =
+    //     !query ||
+    //     journal.journal_title.toLowerCase().includes(query.toLowerCase()) ||
+    //     journal.summary.toLowerCase().includes(query.toLowerCase()) ||
+    //     journal.thematic_area.thematic_area
+    //       .toLowerCase()
+    //       .includes(query.toLowerCase());
 
-      const matchesFilters = filters.every((filter) => {
-        switch (filter.category) {
-          case "country":
-            return journal.country === filter.value;
-          case "thematicArea":
-            return journal.thematicArea === filter.value;
-          case "indexing":
-            return journal.indexing.includes(filter.value);
-          case "language":
-            return journal.language === filter.value;
-          case "accessType":
-            return journal.accessType === filter.value;
-          default:
-            return true;
-        }
-      });
+    //   const matchesFilters = filters.every((filter) => {
+    //     switch (filter.category) {
+    //       case "country":
+    //         return journal.country.country === filter.value;
+    //       case "thematicArea":
+    //         return journal.thematic_area.thematic_area === filter.value;
+    //       // case "indexing":
+    //       //   return journal.google_scholar_index.includes(filter.value);
+    //       case "language":
+    //         return journal.language.language === filter.value;
+    //         // case "accessType":
+    //         //   return journal.open_access_journal === filter.value;
+    //         // default:
+    //         return true;
+    //     }
+    //   });
 
-      return matchesQuery && matchesFilters;
-    });
+    //   return matchesQuery && matchesFilters;
+    // });
 
-    return filteredJournals;
+    // return filteredJournals;
+    const data = await response.json();
+
+    return {
+      results: data.results, // Journals for the current page
+      total: data.count, // Total number of journals
+      next: data.next, // URL for the next page
+      previous: data.previous, // URL for the previous page
+    };
   } catch (error) {
-    console.error("Failed to fetch journals:", error);
-    return [];
+    console.error("Failed to fetch recommended journals:", error);
+    return {
+      results: [],
+      total: 0,
+      next: null,
+      previous: null,
+    };
   }
 }
 
 // Fetch AI-recommended journals
-export async function fetchRecommendedJournals() {
+export async function fetchRecommendedJournals(page = 1, limit = 10) {
   try {
-    // Fetch all journals from the API
-    const response = await fetch('https://backend.afrikajournals.org/journal_api/journals/');
+    const response = await fetch(
+      `https://backend.afrikajournals.org/journal_api/journals/?page=${page}&page_size=${limit}`
+    );
+
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
-    const journals = await response.json();
 
-    // Use Gemini to generate recommendations
-    const prompt = `Based on the following journals, recommend a few that are related:\n${JSON.stringify(journals)}`;
-    const completion = await (gemini as any).generateContent({
-      model: "gemini-pro",
-      prompt: prompt,
-    });
+    const data = await response.json();
 
-    const recommendedJournals = JSON.parse((completion.data.choices[0] as any).text);
-    return recommendedJournals;
+    return {
+      results: data.results, // Journals for the current page
+      total: data.count, // Total number of journals
+      next: data.next, // URL for the next page
+      previous: data.previous, // URL for the previous page
+    };
   } catch (error) {
     console.error("Failed to fetch recommended journals:", error);
-    return [];
+    return {
+      results: [],
+      total: 0,
+      next: null,
+      previous: null,
+    };
   }
 }
 
@@ -88,20 +122,26 @@ export async function fetchRecommendedJournals() {
 export async function fetchRecommendedFilters() {
   try {
     // Fetch all journals from the API
-    const response = await fetch('https://backend.afrikajournals.org/journal_api/journals/');
+    const response = await fetch(
+      "https://backend.afrikajournals.org/journal_api/journals/"
+    );
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
     const journals = await response.json();
 
     // Use Gemini to generate filter recommendations
-    const prompt = `Based on the following journals, recommend some filters for searching:\n${JSON.stringify(journals)}`;
+    const prompt = `Based on the following journals, recommend some filters for searching:\n${JSON.stringify(
+      journals
+    )}`;
     const completion = await (gemini as any).generateContent({
       model: "gemini-pro",
       prompt: prompt,
     });
 
-    const recommendedFilters = JSON.parse((completion.data.choices[0] as any).text);
+    const recommendedFilters = JSON.parse(
+      (completion.data.choices[0] as any).text
+    );
     return recommendedFilters;
   } catch (error) {
     console.error("Failed to fetch recommended filters:", error);
@@ -110,24 +150,35 @@ export async function fetchRecommendedFilters() {
 }
 
 // Fetch similar journals based on journal ID
-export async function fetchSimilarJournals(journalId: string) {
+export async function fetchSimilarJournals(journalText: string) {
   try {
-    // Fetch the journal details
-    const response = await fetch(`https://backend.afrikajournals.org/journal_api/journals/${journalId}`);
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
+    const prompt = `Find a list of similar journals with links for the following journal:\n${journalText}`;
+
+    // Send request to OpenRouter
+    const openRouterResponse = await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "mistralai/mistral-small-3.1-24b-instruct:free",
+          messages: [{ role: "user", content: prompt }],
+          max_tokens: 500,
+          temperature: 0.7,
+        }),
+      }
+    );
+
+    if (!openRouterResponse.ok) {
+      throw new Error(`OpenRouter API error: ${openRouterResponse.status}`);
     }
-    const journal = await response.json();
 
-    // Use Gemini to find similar journals
-    const prompt = `Find journals similar to the following:\n${JSON.stringify(journal)}`;
-    const completion = await (gemini as any).generateContent({
-      model: "gemini-pro",
-      prompt: prompt,
-    });
-
-    const similarJournals = JSON.parse((completion.data.choices[0] as any).text);
-    return similarJournals;
+    const result = await openRouterResponse.json();
+    const summary = result.choices?.[0]?.message?.content || "[]";
+    return summary;
   } catch (error) {
     console.error("Failed to fetch similar journals:", error);
     return [];
@@ -135,10 +186,12 @@ export async function fetchSimilarJournals(journalId: string) {
 }
 
 // Fetch journal volumes and articles
-export async function fetchJournalVolumes(journalId: string) {
+export async function fetchJournalVolumes(journalId: number) {
   try {
     // Fetch volumes for the given journal ID
-    const volumesResponse = await fetch(`https://backend.afrikajournals.org/journal_api/api/volume/?journalId=${journalId}`);
+    const volumesResponse = await fetch(
+      `https://backend.afrikajournals.org/journal_api/api/volume/?journalId=${journalId}`
+    );
     if (!volumesResponse.ok) {
       throw new Error(`API error: ${volumesResponse.status}`);
     }
@@ -147,7 +200,9 @@ export async function fetchJournalVolumes(journalId: string) {
     // Fetch articles for each volume
     const volumesWithArticles = await Promise.all(
       volumes.map(async (volume: any) => {
-        const articlesResponse = await fetch(`https://backend.afrikajournals.org/journal_api/api/article/?volumeId=${volume.id}`);
+        const articlesResponse = await fetch(
+          `https://backend.afrikajournals.org/journal_api/api/article/?volumeId=${volume.id}`
+        );
         if (!articlesResponse.ok) {
           throw new Error(`API error: ${articlesResponse.status}`);
         }
@@ -166,7 +221,9 @@ export async function fetchJournalVolumes(journalId: string) {
 // Fetch journals from the backend API with pagination
 export async function fetchJournalsFromAPI(page = 1, limit = 10) {
   try {
-    const response = await fetch(`https://backend.afrikajournals.org/journal_api/journals/?page=${page}&limit=${limit}`);
+    const response = await fetch(
+      `https://backend.afrikajournals.org/journal_api/journals/?page=${page}&limit=${limit}`
+    );
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
@@ -180,19 +237,27 @@ export async function fetchJournalsFromAPI(page = 1, limit = 10) {
 // Fetch journal details from the backend API
 export async function fetchJournalDetailsFromAPI(journalId: string) {
   try {
-    const response = await fetch(`https://backend.afrikajournals.org/journal_api/journals/${journalId}`);
+    const response = await fetch(
+      `https://backend.afrikajournals.org/journal_api/journals/${journalId}`
+    );
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
     return await response.json();
   } catch (error) {
-    console.error(`Failed to fetch journal details for ID ${journalId}:`, error);
+    console.error(
+      `Failed to fetch journal details for ID ${journalId}:`,
+      error
+    );
     return null;
   }
 }
 
 // Search journals with filters from the backend API
-export async function searchJournalsFromAPI(query = "", filters: { [key: string]: string } = {}) {
+export async function searchJournalsFromAPI(
+  query = "",
+  filters: { [key: string]: string } = {}
+) {
   try {
     // Build query parameters
     const params = new URLSearchParams();
@@ -205,7 +270,9 @@ export async function searchJournalsFromAPI(query = "", filters: { [key: string]
       }
     });
 
-    const response = await fetch(`https://backend.afrikajournals.org/journal_api/journals/search/?${params.toString()}`);
+    const response = await fetch(
+      `https://backend.afrikajournals.org/journal_api/journals/search/?${params.toString()}`
+    );
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
@@ -219,7 +286,9 @@ export async function searchJournalsFromAPI(query = "", filters: { [key: string]
 // Fetch country statistics from the backend API
 export async function fetchCountryStatsFromAPI() {
   try {
-    const response = await fetch(`https://backend.afrikajournals.org/journal_api/api/journals/country-count/`);
+    const response = await fetch(
+      `https://backend.afrikajournals.org/journal_api/api/journals/country-count/`
+    );
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
@@ -231,7 +300,10 @@ export async function fetchCountryStatsFromAPI() {
 }
 
 // Download statistics in various formats
-export async function downloadStatsFromAPI(format = "csv", filters: { [key: string]: string } = {}) {
+export async function downloadStatsFromAPI(
+  format = "csv",
+  filters: { [key: string]: string } = {}
+) {
   try {
     // Build query parameters
     const params = new URLSearchParams();
@@ -245,7 +317,7 @@ export async function downloadStatsFromAPI(format = "csv", filters: { [key: stri
     });
 
     const response = await fetch(
-      `https://backend.afrikajournals.org/journal_api/journals/stats/download/?${params.toString()}`,
+      `https://backend.afrikajournals.org/journal_api/journals/stats/download/?${params.toString()}`
     );
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
@@ -266,7 +338,12 @@ export async function downloadStatsFromAPI(format = "csv", filters: { [key: stri
 }
 
 // Fetch paginated journals from the API
-export async function fetchPaginatedJournals(page = 1, limit = 10, query = "", filters: Filter[] = []) {
+export async function fetchPaginatedJournals(
+  page = 1,
+  limit = 10,
+  query = "",
+  filters: Filter[] = []
+) {
   try {
     // Build query parameters
     const params = new URLSearchParams();
@@ -284,7 +361,9 @@ export async function fetchPaginatedJournals(page = 1, limit = 10, query = "", f
       });
     }
 
-    const response = await fetch(`https://backend.afrikajournals.org/journal_api/journals/?${params.toString()}`);
+    const response = await fetch(
+      `https://backend.afrikajournals.org/journal_api/journals/?${params.toString()}`
+    );
 
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
@@ -301,7 +380,9 @@ export async function fetchPaginatedJournals(page = 1, limit = 10, query = "", f
 export async function fetchJournalStats() {
   try {
     // Fetch journal statistics from the API
-    const response = await fetch('https://backend.afrikajournals.org/journal_api/api/journals/stats/');
+    const response = await fetch(
+      "https://backend.afrikajournals.org/journal_api/api/journals/stats/"
+    );
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
