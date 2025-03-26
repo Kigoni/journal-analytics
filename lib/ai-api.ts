@@ -79,7 +79,7 @@ export async function fetchJournals(query = "", filters: Filter[] = []) {
 
     return filteredJournals;
   } catch (error) {
-    console.error("Failed to fetch journals:", error);
+    //.error("Failed to fetch journals:", error);
     return [];
   }
 }
@@ -113,7 +113,7 @@ export async function fetchRecommendedJournals() {
 
     return recommendedJournals;
   } catch (error) {
-    console.error("Failed to fetch recommended journals:", error);
+    //.error("Failed to fetch recommended journals:", error);
     return [];
   }
 }
@@ -144,7 +144,7 @@ export async function fetchRecommendedFilters() {
     );
     return recommendedFilters;
   } catch (error) {
-    console.error("Failed to fetch recommended filters:", error);
+    //.error("Failed to fetch recommended filters:", error);
     return [];
   }
 }
@@ -166,7 +166,7 @@ export async function fetchAISuggestedFilters(
     );
     return suggestedFilters;
   } catch (error) {
-    console.error("Failed to fetch AI-suggested filters:", error);
+    //.error("Failed to fetch AI-suggested filters:", error);
     return [];
   }
 }
@@ -202,7 +202,7 @@ export async function fetchAISummary(journalText: string): Promise<Summary> {
     const summary = result.choices?.[0]?.message?.content || "[]";
     return { summary };
   } catch (error) {
-    console.error("Failed to fetch AI summary:", error);
+    //.error("Failed to fetch AI summary:", error);
     return { summary: "No summary available." };
   }
 }
@@ -235,7 +235,7 @@ export async function fetchRecommendedCitations(
     );
     return recommendations;
   } catch (error) {
-    console.error("Failed to fetch recommended citations:", error);
+    //.error("Failed to fetch recommended citations:", error);
     return [];
   }
 }
@@ -256,7 +256,7 @@ export async function fetchAITrends(
     const trendData = JSON.parse(completion.data?.choices?.[0]?.text ?? "[]");
     return trendData;
   } catch (error) {
-    console.error("Failed to fetch AI trend analysis data:", error);
+    //.error("Failed to fetch AI trend analysis data:", error);
     return {
       publicationTrends: [],
       citationTrends: [],
@@ -294,7 +294,7 @@ export async function fetchJournalVolumes(journalId: string) {
 
     return volumesWithArticles;
   } catch (error) {
-    console.error("Failed to fetch journal volumes and articles:", error);
+    //.error("Failed to fetch journal volumes and articles:", error);
     return [];
   }
 }
@@ -310,7 +310,7 @@ export async function fetchThematicAreas() {
     }
     return await response.json();
   } catch (error) {
-    console.error("Failed to fetch thematic areas:", error);
+    //.error("Failed to fetch thematic areas:", error);
     return [];
   }
 }
@@ -326,7 +326,7 @@ export async function fetchPlatforms() {
     }
     return await response.json();
   } catch (error) {
-    console.error("Failed to fetch platforms:", error);
+    //.error("Failed to fetch platforms:", error);
     return [];
   }
 }
@@ -342,7 +342,7 @@ export async function fetchLanguages() {
     }
     return await response.json();
   } catch (error) {
-    console.error("Failed to fetch languages:", error);
+    //.error("Failed to fetch languages:", error);
     return [];
   }
 }
@@ -358,7 +358,7 @@ export async function fetchCountries() {
     }
     return await response.json();
   } catch (error) {
-    console.error("Failed to fetch countries:", error);
+    //.error("Failed to fetch countries:", error);
     return [];
   }
 }
@@ -374,7 +374,7 @@ export async function fetchJournalsFromAPI(page = 1, limit = 10) {
     }
     return await response.json();
   } catch (error) {
-    console.error("Failed to fetch journals:", error);
+    //.error("Failed to fetch journals:", error);
     return [];
   }
 }
@@ -390,7 +390,7 @@ export async function fetchJournalDetailsFromAPI(journalId: string) {
     }
     return await response.json();
   } catch (error) {
-    console.error(
+   console.log(
       `Failed to fetch journal details for ID ${journalId}:`,
       error
     );
@@ -423,7 +423,7 @@ export async function searchJournalsFromAPI(
     }
     return await response.json();
   } catch (error) {
-    console.error("Failed to search journals:", error);
+    //.error("Failed to search journals:", error);
     return { journals: [] };
   }
 }
@@ -439,7 +439,7 @@ export async function fetchCountryStatsFromAPI() {
     }
     return await response.json();
   } catch (error) {
-    console.error("Failed to fetch country stats:", error);
+    //.error("Failed to fetch country stats:", error);
     return [];
   }
 }
@@ -477,7 +477,7 @@ export async function downloadStatsFromAPI(
 
     return null;
   } catch (error) {
-    console.error(`Failed to download stats in ${format} format:`, error);
+    //.error(`Failed to download stats in ${format} format:`, error);
     return null;
   }
 }
@@ -516,7 +516,7 @@ export async function fetchPaginatedJournals(
 
     return await response.json();
   } catch (error) {
-    console.error("Failed to fetch paginated journals:", error);
+    //.error("Failed to fetch paginated journals:", error);
     return { page, limit, total: 0, journals: [] };
   }
 }

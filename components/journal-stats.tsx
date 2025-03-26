@@ -71,7 +71,7 @@ export default function JournalStats({
         const data = await fetchJournalStats("overall");
         setStats(data);
       } catch (error) {
-        console.error("Failed to fetch journal stats:", error);
+        //.error("Failed to fetch journal stats:", error);
       } finally {
         setIsLoading(false);
       }

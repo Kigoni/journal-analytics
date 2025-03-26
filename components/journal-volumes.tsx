@@ -33,7 +33,7 @@ export default function JournalVolumes({ journalId }: { journalId: number }) {
         const data = await fetchJournalVolumes(journalId);
         setVolumes(data);
       } catch (error) {
-        console.error("Failed to fetch journal volumes:", error);
+        //.error("Failed to fetch journal volumes:", error);
       } finally {
         setIsLoading(false);
       }

@@ -14,7 +14,7 @@ if (!apiKey) {
 const configuration = apiKey;
 const gemini = new GoogleGenerativeAI(configuration);
 
-console.log("API Key:", process.env.NEXT_PUBLIC_GEMINI_API_KEY);
+//.log("API Key:", process.env.NEXT_PUBLIC_GEMINI_API_KEY);
 
 interface Filter {
   category: string;
@@ -78,7 +78,7 @@ export async function fetchJournals(
       previous: data.previous, // URL for the previous page
     };
   } catch (error) {
-    console.error("Failed to fetch recommended journals:", error);
+    //.error("Failed to fetch recommended journals:", error);
     return {
       results: [],
       total: 0,
@@ -108,7 +108,7 @@ export async function fetchRecommendedJournals(page = 1, limit = 10) {
       previous: data.previous, // URL for the previous page
     };
   } catch (error) {
-    console.error("Failed to fetch recommended journals:", error);
+    //.error("Failed to fetch recommended journals:", error);
     return {
       results: [],
       total: 0,
@@ -144,7 +144,7 @@ export async function fetchRecommendedFilters() {
     );
     return recommendedFilters;
   } catch (error) {
-    console.error("Failed to fetch recommended filters:", error);
+    //.error("Failed to fetch recommended filters:", error);
     return [];
   }
 }
@@ -180,7 +180,7 @@ export async function fetchSimilarJournals(journalText: string) {
     const summary = result.choices?.[0]?.message?.content || "[]";
     return summary;
   } catch (error) {
-    console.error("Failed to fetch similar journals:", error);
+    //.error("Failed to fetch similar journals:", error);
     return [];
   }
 }
@@ -213,7 +213,7 @@ export async function fetchJournalVolumes(journalId: number) {
 
     return volumesWithArticles;
   } catch (error) {
-    console.error("Failed to fetch journal volumes and articles:", error);
+    //.error("Failed to fetch journal volumes and articles:", error);
     return [];
   }
 }
@@ -229,7 +229,7 @@ export async function fetchJournalsFromAPI(page = 1, limit = 10) {
     }
     return await response.json();
   } catch (error) {
-    console.error("Failed to fetch journals:", error);
+    //.error("Failed to fetch journals:", error);
     return [];
   }
 }
@@ -245,7 +245,7 @@ export async function fetchJournalDetailsFromAPI(journalId: string) {
     }
     return await response.json();
   } catch (error) {
-    console.error(
+    console.log(
       `Failed to fetch journal details for ID ${journalId}:`,
       error
     );
@@ -278,7 +278,7 @@ export async function searchJournalsFromAPI(
     }
     return await response.json();
   } catch (error) {
-    console.error("Failed to search journals:", error);
+    //.error("Failed to search journals:", error);
     return { journals: [] };
   }
 }
@@ -294,7 +294,7 @@ export async function fetchCountryStatsFromAPI() {
     }
     return await response.json();
   } catch (error) {
-    console.error("Failed to fetch country stats:", error);
+    //.error("Failed to fetch country stats:", error);
     return [];
   }
 }
@@ -332,7 +332,7 @@ export async function downloadStatsFromAPI(
 
     return null;
   } catch (error) {
-    console.error(`Failed to download stats in ${format} format:`, error);
+    //.error(`Failed to download stats in ${format} format:`, error);
     return null;
   }
 }
@@ -371,7 +371,7 @@ export async function fetchPaginatedJournals(
 
     return await response.json();
   } catch (error) {
-    console.error("Failed to fetch paginated journals:", error);
+    //.error("Failed to fetch paginated journals:", error);
     return { page, limit, total: 0, journals: [] };
   }
 }
@@ -388,7 +388,7 @@ export async function fetchJournalStats() {
     }
     return await response.json();
   } catch (error) {
-    console.error("Failed to fetch journal stats:", error);
+    //.error("Failed to fetch journal stats:", error);
     return [];
   }
 }

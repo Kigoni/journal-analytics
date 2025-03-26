@@ -1,3 +1,4 @@
+"use client";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -34,7 +35,7 @@ export default function CountriesAnalyticsPage() {
         const data = await response.json();
         setCountryStats(data);
       } catch (error) {
-        console.error("Failed to fetch country stats:", error);
+        //.error("Failed to fetch country stats:", error);
       } finally {
         setIsLoading(false);
       }
@@ -74,7 +75,7 @@ export default function CountriesAnalyticsPage() {
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error(`Failed to download stats in ${format} format:`, error);
+      //.error(`Failed to download stats in ${format} format:`, error);
     }
   };
 

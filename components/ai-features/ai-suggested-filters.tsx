@@ -28,7 +28,7 @@ export default function AISuggestedFilters({ query, onApplyFilter }: AISuggested
         const data = await fetchAISuggestedFilters(query)
         setSuggestedFilters(data)
       } catch (error) {
-        console.error("Failed to fetch AI suggested filters:", error)
+        //.error("Failed to fetch AI suggested filters:", error)
       } finally {
         setIsLoading(false)
       }

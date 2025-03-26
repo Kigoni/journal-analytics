@@ -27,7 +27,7 @@ export default function CitationPrediction({ journalId }: CitationPredictionProp
         const data = await fetchRecommendedCitations(journalId)
         setRecommendations(data)
       } catch (error) {
-        console.error("Failed to fetch citation recommendations:", error)
+        //.error("Failed to fetch citation recommendations:", error)
       } finally {
         setIsLoading(false)
       }

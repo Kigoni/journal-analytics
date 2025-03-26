@@ -26,7 +26,7 @@ export default function AISummarization({
       setSummary(data.summary);
       setIsExpanded(true);
     } catch (error) {
-      console.error("Failed to fetch AI summary:", error);
+      //.error("Failed to fetch AI summary:", error);
     } finally {
       setIsLoading(false);
     }

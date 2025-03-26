@@ -63,11 +63,11 @@ export default function AIResearchAssistant({ open, onOpenChange }: AIResearchAs
         try {
           setRecommendations(JSON.parse(textResponse));
         } catch (parseError) {
-          console.error("Error parsing AI response:", parseError);
+          //.error("Error parsing AI response:", parseError);
         }
       }
     } catch (error) {
-      console.error("Failed to fetch research recommendations:", error);
+      //.error("Failed to fetch research recommendations:", error);
     } finally {
       setIsLoadingRecommendations(false);
     }
@@ -91,11 +91,11 @@ export default function AIResearchAssistant({ open, onOpenChange }: AIResearchAs
         try {
           setJournalRecommendations(JSON.parse(textResponse));
         } catch (parseError) {
-          console.error("Error parsing AI response:", parseError);
+          //.error("Error parsing AI response:", parseError);
         }
       }
     } catch (error) {
-      console.error("Failed to fetch journal recommendations:", error);
+      //.error("Failed to fetch journal recommendations:", error);
     } finally {
       setIsLoadingJournals(false);
     }
@@ -115,10 +115,10 @@ export default function AIResearchAssistant({ open, onOpenChange }: AIResearchAs
 
       const response = result.content?.parts[0]?.text;
       if (response) {
-        console.log(response);
+        //.log(response);
       }
     } catch (error) {
-      console.error("Failed to process query:", error);
+      //.error("Failed to process query:", error);
     } finally {
       setIsLoadingQuery(false);
     }

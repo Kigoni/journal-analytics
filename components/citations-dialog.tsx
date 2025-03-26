@@ -37,7 +37,7 @@ if (!apiKey) {
 const configuration = apiKey;
 const gemini = new GoogleGenerativeAI(configuration);
 
-console.log("API Key:", process.env.NEXT_PUBLIC_GEMINI_API_KEY);
+//.log("API Key:", process.env.NEXT_PUBLIC_GEMINI_API_KEY);
 
 export default function CitationsDialog({ journal, open, onOpenChange }: CitationsDialogProps) {
   const [selectedCitation, setSelectedCitation] = useState<string | null>(null);
@@ -66,7 +66,7 @@ export default function CitationsDialog({ journal, open, onOpenChange }: Citatio
         const aiCitations = JSON.parse((completion.data.choices[0] as any).text);
         setCitations(aiCitations);
       } catch (error) {
-        console.error("Failed to fetch citations:", error);
+        //.error("Failed to fetch citations:", error);
       } finally {
         setIsLoading(false);
       }

@@ -73,7 +73,7 @@ export default function StatsDialog({
       const data = await fetchJournalStats();
       setStats(data);
     } catch (error) {
-      console.error("Failed to fetch journal stats:", error);
+      //.error("Failed to fetch journal stats:", error);
     } finally {
       setIsLoading(false);
     }

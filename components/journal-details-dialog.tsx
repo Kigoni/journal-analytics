@@ -43,7 +43,7 @@ export default function JournalDetailsDialog({
           const data = await fetchSimilarJournals(journal.summary);
           setSimilarJournals(data);
         } catch (error) {
-          console.error("Failed to fetch similar journals:", error);
+          //.error("Failed to fetch similar journals:", error);
         } finally {
           setIsLoading(false);
         }

@@ -44,7 +44,7 @@ export default function SubmitJournalDialog({ open, onOpenChange }: { open: bool
       }
 
       const data = await response.json();
-      console.log("Login successful:", data);
+      //.log("Login successful:", data);
 
       onOpenChange(false); // Close dialog on success
     } catch (err: any) {

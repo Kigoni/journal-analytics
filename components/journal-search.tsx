@@ -79,7 +79,7 @@ export default function JournalSearch({
         setRecommendedJournals(data);
         setTotalResults(data.length);
       } catch (error) {
-        console.error("Failed to fetch recommended journals:", error);
+        //.error("Failed to fetch recommended journals:", error);
       } finally {
         setIsLoading(false);
       }
@@ -95,7 +95,7 @@ export default function JournalSearch({
           }))
         );
       } catch (error) {
-        console.error("Failed to fetch recommended filters:", error);
+        //.error("Failed to fetch recommended filters:", error);
       }
     };
 
@@ -125,7 +125,7 @@ export default function JournalSearch({
         );
         setSelectedThematicArea(thematicFilter ? thematicFilter.value : "");
       } catch (error) {
-        console.error("Failed to fetch journals:", error);
+        //.error("Failed to fetch journals:", error);
       } finally {
         setIsLoading(false);
       }

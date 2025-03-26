@@ -39,7 +39,7 @@ export default function AITrendAnalysis({ query, thematicArea }: AITrendAnalysis
         const data = await fetchAITrends(query, thematicArea);
         setTrendData(data);
       } catch (error) {
-        console.error("Failed to fetch AI trends:", error);
+        //.error("Failed to fetch AI trends:", error);
       } finally {
         setIsLoading(false);
       }

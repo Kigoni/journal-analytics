@@ -61,7 +61,7 @@ export default function AdvancedSearchBar({
         setTotalResults(data.total);
         setTotalPages(Math.ceil(data.total / itemsPerPage));
       } catch (error) {
-        console.error("Failed to fetch recommended journals:", error);
+        //.error("Failed to fetch recommended journals:", error);
       } finally {
         setIsLoading(false);
       }
@@ -77,7 +77,7 @@ export default function AdvancedSearchBar({
     //       }))
     //     );
     //   } catch (error) {
-    //     console.error("Failed to fetch recommended filters:", error);
+    //     //.error("Failed to fetch recommended filters:", error);
     //   }
     // };
 
@@ -114,7 +114,7 @@ export default function AdvancedSearchBar({
         );
         setSelectedThematicArea(thematicFilter ? thematicFilter.value : "");
       } catch (error) {
-        console.error("Failed to fetch journals:", error);
+        //.error("Failed to fetch journals:", error);
       } finally {
         setIsLoading(false);
       }
