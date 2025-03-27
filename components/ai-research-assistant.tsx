@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sparkles, Search, BookOpen, FileText, Download, Send, Loader2 } from "lucide-react";
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
+
 interface AIResearchAssistantProps {
   open: boolean;
   onOpenChange: () => void;
@@ -24,10 +25,17 @@ interface JournalRecommendation {
   reason: string;
 }
 
-const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-if (!apiKey) {
-  throw new Error('GEMINI_API_KEY environment variable is not set');
+interface Message {
+  role: string;
+  content: string;
 }
+
+const apiKey = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY;
+if (!apiKey) {
+  throw new Error("OPENROUTER_API_KEY environment variable is not set");
+}
+
+const configuration = apiKey;
 
 export default function AIResearchAssistant({ open, onOpenChange }: AIResearchAssistantProps) {
   const [query, setQuery] = useState("");
@@ -37,7 +45,7 @@ export default function AIResearchAssistant({ open, onOpenChange }: AIResearchAs
   const [activeTab, setActiveTab] = useState("assistant");
   const [recommendations, setRecommendations] = useState<ResearchRecommendation[]>([]);
   const [journalRecommendations, setJournalRecommendations] = useState<JournalRecommendation[]>([]);
-
+  const [messages, setMessages] = useState<Message[]>([]);
   useEffect(() => {
     if (open) {
       fetchRecommendations();
@@ -52,13 +60,32 @@ export default function AIResearchAssistant({ open, onOpenChange }: AIResearchAs
       if (!response.ok) throw new Error(`API error: ${response.status}`);
 
       const data = await response.json();
-      const gemini = new GoogleGenerativeAI(apiKey!); // Ensure apiKey is not undefined
-      const model = gemini.getGenerativeModel({ model: "gemini-pro" });
-      const result = await model.generateContent({
-        contents: [{ role: "user", parts: [{ text: `Recommend research topics:\n${JSON.stringify(data)}` }] }],
-      });
+      const prompt = `Recommend research topics:\n${JSON.stringify(data)}`;
 
-      const textResponse = result.content?.parts[0]?.text;
+    // Send request to OpenRouter
+    const openRouterResponse = await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "mistralai/mistral-small-3.1-24b-instruct:free",
+          messages: [{ role: "user", content: prompt }],
+          max_tokens: 500,
+          temperature: 0.7,
+        }),
+      }
+    );
+
+    if (!openRouterResponse.ok) {
+      throw new Error(`OpenRouter API error: ${openRouterResponse.status}`);
+    }
+
+    const result = await openRouterResponse.json();
+    const textResponse = result.choices?.[0]?.message?.content || "[]";
       if (textResponse) {
         try {
           setRecommendations(JSON.parse(textResponse));
@@ -80,13 +107,32 @@ export default function AIResearchAssistant({ open, onOpenChange }: AIResearchAs
       if (!response.ok) throw new Error(`API error: ${response.status}`);
 
       const data = await response.json();
-      const gemini = new GoogleGenerativeAI(apiKey!); // Ensure apiKey is not undefined
-      const model = gemini.getGenerativeModel({ model: "gemini-pro" });
-      const result = await model.generateContent({
-        contents: [{ role: "user", parts: [{ text: `Recommend journals based on interests:\n${JSON.stringify(data)}` }] }],
-      });
+      const prompt = `Recommend journals based on interests:\n${JSON.stringify(data)}`;
 
-      const textResponse = result.content?.parts[0]?.text;
+      // Send request to OpenRouter
+      const openRouterResponse = await fetch(
+        "https://openrouter.ai/api/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "mistralai/mistral-small-3.1-24b-instruct:free",
+            messages: [{ role: "user", content: prompt }],
+            max_tokens: 500,
+            temperature: 0.7,
+          }),
+        }
+      );
+  
+      if (!openRouterResponse.ok) {
+        throw new Error(`OpenRouter API error: ${openRouterResponse.status}`);
+      }
+  
+      const result = await openRouterResponse.json();
+      const textResponse = result.choices?.[0]?.message?.content || "[]";
       if (textResponse) {
         try {
           setJournalRecommendations(JSON.parse(textResponse));
@@ -107,15 +153,45 @@ export default function AIResearchAssistant({ open, onOpenChange }: AIResearchAs
 
     setIsLoadingQuery(true);
     try {
-      const gemini = new GoogleGenerativeAI(apiKey!); // Ensure apiKey is not undefined
-      const model = gemini.getGenerativeModel({ model: "gemini-pro" });
-      const result = await model.generateContent({
-        contents: [{ role: "user", parts: [{ text: `Provide a detailed response:\n${query}` }] }],
-      });
 
-      const response = result.content?.parts[0]?.text;
-      if (response) {
-        //.log(response);
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        { role: "user", content: query },
+      ]);
+     
+
+
+      const prompt = `Recommend journals based on interests::\n${query}`;
+
+      // Send request to OpenRouter
+      const openRouterResponse = await fetch(
+        "https://openrouter.ai/api/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "mistralai/mistral-small-3.1-24b-instruct:free",
+            messages: [{ role: "user", content: prompt }],
+            max_tokens: 500,
+            temperature: 0.7, 
+          }),
+        }
+      );
+  
+      if (!openRouterResponse.ok) {
+        throw new Error(`OpenRouter API error: ${openRouterResponse.status}`);
+      }
+  
+      const result = await openRouterResponse.json();
+      const textResponse = result.choices?.[0]?.message?.content || "[]";
+      if (textResponse) {
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { role: "ai", content: textResponse },
+        ]);
       }
     } catch (error) {
       //.error("Failed to process query:", error);
@@ -149,16 +225,25 @@ export default function AIResearchAssistant({ open, onOpenChange }: AIResearchAs
               </p>
             </div>
 
-            <div className="space-y-4 min-h-[300px]">
-              <div className="bg-primary/10 p-3 rounded-lg rounded-tl-none w-4/5">
-                <p className="text-sm">
-                  Hello! I'm your AI research assistant. I can help you discover relevant journals, find research
-                  topics, and navigate the academic landscape. What would you like to know today?
-                </p>
-              </div>
-
-              {/* This would be populated with actual conversation in a real implementation */}
-            </div>
+            <div className="space-y-4 min-h-[300px] flex flex-col">
+  <div className="bg-primary/10 p-3 rounded-lg rounded-tl-none w-4/5 self-center">
+    <p className="text-sm">
+      Hello! I'm your AI research assistant. I can help you discover relevant journals, find research
+      topics, and navigate the academic landscape. What would you like to know today?
+    </p>
+  </div>
+  {
+    messages.map((message, index) => (
+      <div key={index} className={`message ${message.role}`}>
+        <div className={`p-3 rounded-lg w-4/5 ${message.role === 'ai' ? 'self-start bg-primary/10' : 'self-end bg-green-100'}`}>
+          <p className="text-sm">
+            {message.content}
+          </p>
+        </div>
+      </div>
+    ))
+  }
+</div>
 
             <form onSubmit={handleSubmit} className="flex items-center gap-2">
               <Input
@@ -171,7 +256,7 @@ export default function AIResearchAssistant({ open, onOpenChange }: AIResearchAs
                 {isLoadingQuery ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               </Button>
             </form>
-          </TabsContent>
+          </TabsContent>    
 
           <TabsContent value="topics" className="space-y-4 py-4">
             <div className="flex items-center gap-2 mb-4">

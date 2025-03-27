@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, Filter, BookOpen, Sparkles, Loader2 } from "lucide-react";
 import { useDebounce } from "@/hooks/use-debounce";
+import SubmitJournalDialog from "@/components/submit-journal-dialog"
 import {
   fetchJournals,
   fetchRecommendedJournals,
@@ -14,6 +15,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 // import VoiceSearch from "@/components/ai-features/voice-search"
 import AISuggestedFilters from "./ai-features/ai-suggested-filters";
+
 import JournalList from "./journal-list";
 import { Journal } from "@/data/journalData";
 
@@ -38,6 +40,7 @@ export default function AdvancedSearchBar({
   const [setSearchType] = useState("keyword");
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [isLoading, setIsLoading] = useState(false);
+  const [showSubmitDialog, setShowSubmitDialog] = useState(false)
   const [showFiltersState, setShowFiltersState] = useState(showFiltersProp);
   const [journals, setJournals] = useState<Journal[]>([]);
   const [recommendedJournals, setRecommendedJournals] = useState<Journal[]>([]);
@@ -187,12 +190,13 @@ export default function AdvancedSearchBar({
               <Button
                 variant="outline"
                 size="sm"
-                // onClick={onSubmitClick}
+                onClick={() => setShowSubmitDialog(true)}
                 className="bg-primary/10 hover:bg-primary/20 text-primary"
               >
                 <BookOpen className="h-4 w-4 mr-2" />
                 Submit Journal
               </Button>
+              <SubmitJournalDialog open={showSubmitDialog} onOpenChange={() => setShowSubmitDialog(!showSubmitDialog)} />
             </div>
 
             <Tabs
